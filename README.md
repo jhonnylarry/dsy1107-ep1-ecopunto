@@ -80,3 +80,28 @@ export JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0
 export JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys
 export JWT_AUDIENCE=api://<clientId>
 ```
+
+## Cómo correr con Docker
+
+Cada componente tiene su propio `Dockerfile` (build multi-stage, sin dependencias de
+Maven/Node en el host más que Docker mismo).
+
+```bash
+# backend (compila con el wrapper adentro del contenedor, corre en :8080)
+cd backend
+docker build -t ecopunto-backend .
+docker run --rm -p 8080:8080 \
+  -e JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0 \
+  -e JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys \
+  -e JWT_AUDIENCE=api://<clientId> \
+  ecopunto-backend
+
+# frontend (build de producción servido con nginx, corre en :80)
+cd frontend
+docker build -t ecopunto-frontend .
+docker run --rm -p 8080:80 ecopunto-frontend
+```
+
+Si no se pasan variables de entorno al backend, arranca igual con los valores por
+defecto (ver sección anterior) — útil para probar el contenedor localmente antes de
+tener el tenant real.
