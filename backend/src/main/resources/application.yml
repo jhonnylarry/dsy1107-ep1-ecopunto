@@ -1,0 +1,31 @@
+app:
+  security:
+    # Valores por defecto SOLO para poder levantar el backend antes de tener
+    # el tenant real de Entra ID. jwks-uri apunta al endpoint público y
+    # multi-tenant de claves de Microsoft: se puede descargar sin validar
+    # ningún issuer específico, así que el arranque no falla. issuer/audience
+    # sí se siguen validando en cada token real (ver SecurityConfig), por lo
+    # que ningún token va a pasar hasta reemplazar estos tres valores por los
+    # del App Registration real.
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: ecopunto-backend
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:ecopunto}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  h2:
+    console:
+      enabled: true
