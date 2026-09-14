@@ -77,8 +77,20 @@ protegidas. Una vez creado el tenant, sobrescribir con variables de entorno:
 ```bash
 export JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0
 export JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys
-export JWT_AUDIENCE=api://<clientId>
+export JWT_AUDIENCE=<clientId>
 ```
+
+> **Importante sobre `JWT_AUDIENCE`:** para tokens v2.0 emitidos contra la API propia
+> (no Microsoft Graph), el claim `aud` viene como el Client ID "pelado" (el GUID),
+> **sin** el prefijo `api://`. Si se pone `api://<clientId>` acá, la validación de
+> audience falla siempre con 401 aunque el resto del token sea válido.
+>
+> Además, en el App Registration de Entra ID hay que forzar tokens v2 explícitamente:
+> **Manifiesto → `"api": { "requestedAccessTokenVersion": 2 }`**. Por defecto queda en
+> `null`, y Azure emite tokens v1.0 (`iss` con formato `https://sts.windows.net/<tenantId>/`)
+> para APIs propias aunque todo el flujo de login use el endpoint v2 — es un detalle de
+> compatibilidad hacia atrás con ADAL que rompe silenciosamente la validación de issuer
+> si no se cambia.
 
 ## Cómo correr con Docker
 
@@ -92,7 +104,7 @@ docker build -t ecopunto-backend .
 docker run --rm -p 8080:8080 \
   -e JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0 \
   -e JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys \
-  -e JWT_AUDIENCE=api://<clientId> \
+  -e JWT_AUDIENCE=<clientId> \
   ecopunto-backend
 
 # frontend (build de producción servido con nginx, corre en :80)
