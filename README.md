@@ -24,7 +24,7 @@ flowchart LR
 | Componente | Estado |
 |---|---|
 | `frontend/` — Angular + MSAL (login, guard, interceptor) | 🟡 En desarrollo |
-| `backend/` — Spring Boot Resource Server | ⏳ Pendiente |
+| `backend/` — Spring Boot Resource Server | 🟡 En desarrollo (compila y corre local con H2, falta Entra real) |
 | Tenant / App Registration en Entra ID | ⏳ Pendiente |
 | Despliegue en EC2 + API Gateway | ⏳ Pendiente (EP2) |
 
@@ -35,7 +35,8 @@ PuntoLimpio ── Reporte
 ```
 
 ```text
-GET  /api/public/puntos-limpios        → público
+GET  /public/puntos-limpios            → público
+GET  /api/puntos-limpios               → protegido, autenticado
 GET  /api/puntos-limpios/{id}/reportes → protegido, scope reportes.read
 POST /api/puntos-limpios/{id}/reportes → protegido, scope reportes.write
 PUT  /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
@@ -47,7 +48,7 @@ PUT  /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
 dsy1107-ep1-ecopunto/
 ├── README.md
 ├── frontend/    ← Angular 22 + @azure/msal-angular
-└── backend/     ← Spring Boot (pendiente)
+└── backend/     ← Spring Boot 4 · Java 21 · Resource Server OAuth2/JWT
 ```
 
 ## Cómo ejecutar el frontend
@@ -58,4 +59,24 @@ npm install
 cp src/environments/environment.example.ts src/environments/environment.ts
 # completar clientId, tenantId y apiScope con los valores reales del App Registration
 npm start
+```
+
+## Cómo ejecutar el backend
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Levanta en `http://localhost:8080` con base de datos H2 en memoria (se recrea y se
+siembra con datos de prueba en cada arranque). Mientras no exista el App
+Registration real en Entra ID, `issuer`/`audience`/`jwks-uri` quedan con valores
+por defecto que permiten que el backend arranque, pero ningún token real va a
+pasar la validación — solo sirve para probar las rutas públicas y el 401 en las
+protegidas. Una vez creado el tenant, sobrescribir con variables de entorno:
+
+```bash
+export JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0
+export JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys
+export JWT_AUDIENCE=api://<clientId>
 ```
