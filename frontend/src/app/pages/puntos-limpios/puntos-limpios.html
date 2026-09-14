@@ -1,0 +1,18 @@
+<main class="container">
+  <h1>Puntos limpios</h1>
+  <p>Sesión: {{ auth.getAccount()?.username }}</p>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  <ul>
+    @for (punto of puntos(); track punto.id) {
+      <li>
+        <strong>{{ punto.nombre }}</strong> — {{ punto.direccion }}
+        <br />
+        Acepta: {{ punto.materialesAceptados.join(', ') }}
+      </li>
+    }
+  </ul>
+</main>

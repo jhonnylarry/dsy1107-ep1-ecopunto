@@ -1,0 +1,12 @@
+<main class="container">
+  <h1>EcoPunto</h1>
+  <p>Consulta el estado de los puntos limpios de tu zona y reporta si un material ya no se puede depositar.</p>
+
+  @if (auth.isAuthenticated()) {
+    <p>Sesión activa: {{ auth.getAccount()?.username }}</p>
+    <button type="button" (click)="auth.logout()">Cerrar sesión</button>
+    <a routerLink="/puntos-limpios">Ir a puntos limpios</a>
+  } @else {
+    <button type="button" (click)="auth.login()">Iniciar sesión</button>
+  }
+</main>
