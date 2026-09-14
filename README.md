@@ -1,8 +1,7 @@
 # EcoPunto · DSY1107 · Evaluación Parcial 1
 
 **Asignatura:** DSY1107 · Desarrollo Cloud Native I · Sección 002D
-**Estudiante:** Jonathan Larraguibel (trabajo individual, autorizado por el docente)
-**Evaluación:** EP1 (16%) — base de este mismo proyecto continúa en EP2 (24%)
+**Estudiante:** Jonathan Larraguibel 
 
 Sistema para consultar puntos limpios de reciclaje y reportar si un material ya no se puede depositar en un punto específico.
 
