@@ -1,29 +1,93 @@
 <main class="container">
   <a routerLink="/" class="back-link">← Volver</a>
-  <h1>Puntos limpios</h1>
-  <p class="session-line">Sesión: {{ auth.getAccount()?.username }}</p>
+  <div class="page-header">
+    <div>
+      <h1>Puntos limpios</h1>
+      <p class="session-line">Sesión: {{ auth.getAccount()?.username }}</p>
+    </div>
+    @if (esEncargado() && !mostrarFormCrear()) {
+      <button type="button" (click)="abrirFormCrear()">+ Agregar punto</button>
+    }
+  </div>
 
   @if (error()) {
     <p class="error">{{ error() }}</p>
   }
 
-  @if (!error() && puntos().length === 0) {
+  @if (mostrarFormCrear()) {
+    <form class="form-card" (ngSubmit)="crearPunto()" #crearForm="ngForm">
+      <h2>Nuevo punto limpio</h2>
+      <label>
+        Nombre
+        <input name="nombre" [(ngModel)]="nuevoPunto.nombre" required />
+      </label>
+      <label>
+        Dirección
+        <input name="direccion" [(ngModel)]="nuevoPunto.direccion" required />
+      </label>
+      <label>
+        Comuna
+        <input name="comuna" [(ngModel)]="nuevoPunto.comuna" required />
+      </label>
+      <label>
+        Materiales aceptados (separados por coma)
+        <input name="materialesAceptados" [(ngModel)]="nuevoPunto.materialesAceptados" required />
+      </label>
+      <div class="form-actions">
+        <button type="submit" [disabled]="crearForm.invalid">Guardar</button>
+        <button type="button" class="secondary" (click)="cancelarCrear()">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  @if (!error() && puntos().length === 0 && !mostrarFormCrear()) {
     <p class="empty">Cargando puntos limpios…</p>
   }
 
   <ul class="puntos-list">
     @for (punto of puntos(); track punto.id) {
       <li class="punto-card">
-        <div class="punto-header">
-          <h2>{{ punto.nombre }}</h2>
-          <span class="comuna-badge">{{ punto.comuna }}</span>
-        </div>
-        <p class="direccion">📍 {{ punto.direccion }}</p>
-        <div class="materiales">
-          @for (material of punto.materialesAceptados.split(','); track material) {
-            <span class="material-chip">{{ material.trim() }}</span>
+        @if (idEditando() === punto.id) {
+          <form class="form-card inline" (ngSubmit)="guardarEdicion(punto.id)" #editForm="ngForm">
+            <label>
+              Nombre
+              <input name="nombre" [(ngModel)]="formEdicion.nombre" required />
+            </label>
+            <label>
+              Dirección
+              <input name="direccion" [(ngModel)]="formEdicion.direccion" required />
+            </label>
+            <label>
+              Comuna
+              <input name="comuna" [(ngModel)]="formEdicion.comuna" required />
+            </label>
+            <label>
+              Materiales aceptados
+              <input name="materialesAceptados" [(ngModel)]="formEdicion.materialesAceptados" required />
+            </label>
+            <div class="form-actions">
+              <button type="submit" [disabled]="editForm.invalid">Guardar</button>
+              <button type="button" class="secondary" (click)="cancelarEdicion()">Cancelar</button>
+            </div>
+          </form>
+        } @else {
+          <div class="punto-header">
+            <h2>{{ punto.nombre }}</h2>
+            <span class="comuna-badge">{{ punto.comuna }}</span>
+          </div>
+          <p class="direccion">📍 {{ punto.direccion }}</p>
+          <div class="materiales">
+            @for (material of punto.materialesAceptados.split(','); track material) {
+              <span class="material-chip">{{ material.trim() }}</span>
+            }
+          </div>
+          @if (esEncargado()) {
+            <div class="card-actions">
+              <button type="button" class="secondary" (click)="empezarEdicion(punto)">Editar</button>
+              <button type="button" class="danger" (click)="eliminarPunto(punto)">Eliminar</button>
+            </div>
           }
-        </div>
+        }
       </li>
     }
   </ul>

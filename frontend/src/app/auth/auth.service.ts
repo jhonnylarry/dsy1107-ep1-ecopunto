@@ -69,4 +69,14 @@ export class AuthService {
       throw error;
     }
   }
+
+  async getRoles(): Promise<string[]> {
+    try {
+      const token = await this.getAccessToken();
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return payload.roles ?? [];
+    } catch {
+      return [];
+    }
+  }
 }
