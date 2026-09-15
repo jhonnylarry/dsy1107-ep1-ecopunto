@@ -130,12 +130,38 @@ docker run --rm -p 8080:8080 \
   -e JWT_AUDIENCE=<clientId> \
   ecopunto-backend
 
-# frontend (build de producción servido con nginx, corre en :80)
+# frontend (build de producción servido con nginx, HTTPS en :443,
+# redirect automático desde :80)
 cd frontend
 docker build -t ecopunto-frontend .
-docker run --rm -p 8080:80 ecopunto-frontend
+docker run --rm -p 80:80 -p 443:443 \
+  -v ~/certs:/etc/nginx/certs:ro \
+  ecopunto-frontend
 ```
 
 Si no se pasan variables de entorno al backend, arranca igual con los valores por
 defecto (ver sección anterior) — útil para probar el contenedor localmente antes de
 tener el tenant real.
+
+### Por qué el frontend necesita HTTPS incluso con IP pública sin dominio
+
+MSAL usa `crypto.subtle` del navegador para PKCE, y los navegadores solo exponen esa
+API en un **contexto seguro**: `https://` o `http://localhost`. Una IP pública servida
+por HTTP plano (`http://<ip>`) no califica, y MSAL falla con `crypto_nonexistent` — la
+app queda en blanco, sin ningún error visible salvo en la consola del navegador.
+
+Como no hay dominio propio apuntando a la instancia EC2, se usa un certificado
+autofirmado generado directamente en el servidor (el navegador va a mostrar una
+advertencia de "sitio no seguro" que hay que aceptar manualmente, es esperado):
+
+```bash
+mkdir -p ~/certs
+openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+  -keyout ~/certs/privkey.pem -out ~/certs/fullchain.pem \
+  -subj "/CN=<IP_PUBLICA>" \
+  -addext "subjectAltName=IP:<IP_PUBLICA>"
+```
+
+Importante: en el App Registration de Entra ID hay que agregar
+`https://<IP_PUBLICA>/` como Redirect URI adicional de tipo SPA (además de
+`http://localhost:4200/`), o el login va a fallar con `redirect_uri_mismatch`.
