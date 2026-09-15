@@ -22,9 +22,9 @@ flowchart LR
 
 | Componente | Estado |
 |---|---|
-| `frontend/` — Angular + MSAL (login, guard, interceptor) | 🟡 En desarrollo |
-| `backend/` — Spring Boot Resource Server | 🟡 En desarrollo (compila y corre local con H2, falta Entra real) |
-| Tenant / App Registration en Entra ID | ⏳ Pendiente |
+| `frontend/` — Angular + MSAL (login, guard, interceptor) | ✅ Funcional, login real contra Entra ID probado |
+| `backend/` — Spring Boot Resource Server | ✅ CRUD completo, valida JWT real (issuer/audience/firma/rol) |
+| Tenant / App Registration en Entra ID | ✅ Configurado, login end-to-end verificado |
 | Despliegue en EC2 + API Gateway | ⏳ Pendiente (EP2) |
 
 ## Entidades del dominio
@@ -93,6 +93,27 @@ export JWT_AUDIENCE=<clientId>
 > para APIs propias aunque todo el flujo de login use el endpoint v2 — es un detalle de
 > compatibilidad hacia atrás con ADAL que rompe silenciosamente la validación de issuer
 > si no se cambia.
+
+## Evidencia de autorización (matriz de seguridad)
+
+Probado end-to-end contra el tenant real de Entra ID, con dos usuarios de prueba
+(uno con el rol `ENCARGADO` asignado y otro sin ningún rol):
+
+| Escenario | Resultado |
+|---|---|
+| `GET /public/puntos-limpios` sin token | 200 |
+| `GET /api/puntos-limpios` sin token | 401 |
+| `PUT`/`POST`/`DELETE /api/puntos-limpios` sin token | 401 |
+| `GET /api/puntos-limpios` con token válido, sin rol `ENCARGADO` | 200 (solo exige autenticación) |
+| `PUT`/`POST`/`DELETE /api/puntos-limpios` con token válido, sin rol `ENCARGADO` | 403 |
+| `PUT`/`POST`/`DELETE /api/puntos-limpios` con token válido y rol `ENCARGADO` | 200/201/204 |
+
+Nota sobre permisos: los scopes delegados (`reportes.read`/`reportes.write`) se
+rigen por **consentimiento** — el consentimiento de administrador otorgado una
+vez en el App Registration aplica a todos los usuarios del tenant automáticamente.
+El App Role (`ENCARGADO`) se rige por **asignación explícita** por usuario/grupo
+en Enterprise Applications, independiente del consentimiento de scopes — por eso
+un usuario sin el rol asignado igual trae los scopes en su token, pero no el rol.
 
 ## Cómo correr con Docker
 
