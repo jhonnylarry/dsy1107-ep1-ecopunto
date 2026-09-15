@@ -1,0 +1,50 @@
+.hero {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.hero-icon {
+  font-size: 2.5rem;
+}
+
+.hero h1 {
+  margin: 0.25rem 0 0.5rem;
+  color: var(--color-primary-dark);
+}
+
+.hero p {
+  color: var(--color-text-muted);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.session-label {
+  margin: 0 0 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.session-user {
+  margin: 0 0 1.25rem;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.actions a {
+  text-decoration: none;
+}

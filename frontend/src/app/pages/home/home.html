@@ -1,12 +1,21 @@
 <main class="container">
-  <h1>EcoPunto</h1>
-  <p>Consulta el estado de los puntos limpios de tu zona y reporta si un material ya no se puede depositar.</p>
+  <header class="hero">
+    <span class="hero-icon">♻️</span>
+    <h1>EcoPunto</h1>
+    <p>Consulta el estado de los puntos limpios de tu zona y reporta si un material ya no se puede depositar.</p>
+  </header>
 
-  @if (auth.isAuthenticated()) {
-    <p>Sesión activa: {{ auth.getAccount()?.username }}</p>
-    <button type="button" (click)="auth.logout()">Cerrar sesión</button>
-    <a routerLink="/puntos-limpios">Ir a puntos limpios</a>
-  } @else {
-    <button type="button" (click)="auth.login()">Iniciar sesión</button>
-  }
+  <section class="card">
+    @if (auth.isAuthenticated()) {
+      <p class="session-label">Sesión activa</p>
+      <p class="session-user">{{ auth.getAccount()?.username }}</p>
+      <div class="actions">
+        <a routerLink="/puntos-limpios"><button type="button">Ir a puntos limpios</button></a>
+        <button type="button" class="secondary" (click)="auth.logout()">Cerrar sesión</button>
+      </div>
+    } @else {
+      <p class="session-label">Necesitás iniciar sesión para ver tus puntos limpios</p>
+      <button type="button" (click)="auth.login()">Iniciar sesión</button>
+    }
+  </section>
 </main>

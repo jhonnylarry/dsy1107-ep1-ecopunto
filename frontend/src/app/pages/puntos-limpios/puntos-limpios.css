@@ -1,0 +1,87 @@
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  color: var(--color-primary-dark);
+}
+
+.session-line {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1.5rem;
+}
+
+.error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+
+.empty {
+  color: var(--color-text-muted);
+}
+
+.puntos-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.punto-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+}
+
+.punto-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.punto-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.comuna-badge {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.direccion {
+  color: var(--color-text-muted);
+  margin: 0.4rem 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.materiales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.material-chip {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.65rem;
+  color: var(--color-text);
+}
