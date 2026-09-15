@@ -1,17 +1,29 @@
 <main class="container">
+  <a routerLink="/" class="back-link">← Volver</a>
   <h1>Puntos limpios</h1>
-  <p>Sesión: {{ auth.getAccount()?.username }}</p>
+  <p class="session-line">Sesión: {{ auth.getAccount()?.username }}</p>
 
   @if (error()) {
     <p class="error">{{ error() }}</p>
   }
 
-  <ul>
+  @if (!error() && puntos().length === 0) {
+    <p class="empty">Cargando puntos limpios…</p>
+  }
+
+  <ul class="puntos-list">
     @for (punto of puntos(); track punto.id) {
-      <li>
-        <strong>{{ punto.nombre }}</strong> — {{ punto.direccion }}
-        <br />
-        Acepta: {{ punto.materialesAceptados.join(', ') }}
+      <li class="punto-card">
+        <div class="punto-header">
+          <h2>{{ punto.nombre }}</h2>
+          <span class="comuna-badge">{{ punto.comuna }}</span>
+        </div>
+        <p class="direccion">📍 {{ punto.direccion }}</p>
+        <div class="materiales">
+          @for (material of punto.materialesAceptados.split(','); track material) {
+            <span class="material-chip">{{ material.trim() }}</span>
+          }
+        </div>
       </li>
     }
   </ul>

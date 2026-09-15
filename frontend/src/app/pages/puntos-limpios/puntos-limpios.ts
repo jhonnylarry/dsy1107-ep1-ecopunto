@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../environments/environment';
 
@@ -7,12 +8,14 @@ interface PuntoLimpio {
   id: number;
   nombre: string;
   direccion: string;
-  materialesAceptados: string[];
+  comuna: string;
+  materialesAceptados: string;
 }
 
 @Component({
   selector: 'app-puntos-limpios',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './puntos-limpios.html',
   styleUrl: './puntos-limpios.css',
 })
