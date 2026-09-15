@@ -34,11 +34,13 @@ PuntoLimpio ── Reporte
 ```
 
 ```text
-GET  /public/puntos-limpios            → público
-GET  /api/puntos-limpios               → protegido, autenticado
-GET  /api/puntos-limpios/{id}/reportes → protegido, scope reportes.read
-POST /api/puntos-limpios/{id}/reportes → protegido, scope reportes.write
-PUT  /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
+GET    /public/puntos-limpios            → público
+GET    /api/puntos-limpios               → protegido, autenticado
+POST   /api/puntos-limpios               → protegido, ROLE_ENCARGADO
+PUT    /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
+DELETE /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
+GET    /api/puntos-limpios/{id}/reportes → protegido, scope reportes.read
+POST   /api/puntos-limpios/{id}/reportes → protegido, scope reportes.write
 ```
 
 ## Estructura
