@@ -1,4 +1,4 @@
-# EcoPunto · DSY1107 · Evaluación Parcial 1
+# EcoPunto · DSY1107 · Evaluaciones Parciales 1 y 2
 
 **Asignatura:** DSY1107 · Desarrollo Cloud Native I · Sección 002D
 **Estudiante:** Jonathan Larraguibel 
@@ -9,23 +9,26 @@ Sistema para consultar puntos limpios de reciclaje y reportar si un material ya 
 
 ```mermaid
 flowchart LR
-    U[Usuario] --> FE["Angular + MSAL<br/>frontend/"]
+    U[Usuario] --> FE["Angular + MSAL · nginx<br/>EC2 frontend (HTTPS)"]
     FE -->|"Authorization Code + PKCE"| ENTRA["Microsoft Entra ID"]
     ENTRA -->|"Access Token JWT"| FE
-    FE -->|"Bearer token"| GW["AWS API Gateway"]
-    GW -->|"Integración HTTP"| BE["Spring Boot · EC2<br/>backend/"]
+    FE -->|"Bearer token (HTTPS)"| GW["AWS API Gateway<br/>(HTTP API)"]
+    GW -->|"Integración HTTP"| BE["Spring Boot · Docker<br/>EC2 backend"]
     BE -->|"valida token"| ENTRA
     BE --> DB[("Base de datos")]
+    DNS["Cloudflare DNS<br/>+ Let's Encrypt"] -.->|"nombre + certificado"| FE
+    DNS -.->|"nombre"| BE
 ```
 
 ## Estado
 
 | Componente | Estado |
 |---|---|
-| `frontend/` — Angular + MSAL (login, guard, interceptor) | ✅ Funcional, login real contra Entra ID probado |
+| `frontend/` — Angular + MSAL (login, guard, interceptor, CRUD por rol) | ✅ Funcional, login real contra Entra ID probado |
 | `backend/` — Spring Boot Resource Server | ✅ CRUD completo, valida JWT real (issuer/audience/firma/rol) |
 | Tenant / App Registration en Entra ID | ✅ Configurado, login end-to-end verificado |
-| Despliegue en EC2 + API Gateway | ⏳ Pendiente (EP2) |
+| Despliegue en EC2 (Docker) con dominio y HTTPS | ✅ Funcionando |
+| AWS API Gateway (HTTP API) delante del backend | ✅ Funcionando, con CORS configurado |
 
 ## Entidades del dominio
 
@@ -125,6 +128,7 @@ Maven/Node en el host más que Docker mismo).
 cd backend
 docker build -t ecopunto-backend .
 docker run --rm -p 8080:8080 \
+  -e ALLOWED_ORIGINS=https://<dominio-frontend> \
   -e JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0 \
   -e JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys \
   -e JWT_AUDIENCE=<clientId> \
@@ -143,25 +147,64 @@ Si no se pasan variables de entorno al backend, arranca igual con los valores po
 defecto (ver sección anterior) — útil para probar el contenedor localmente antes de
 tener el tenant real.
 
-### Por qué el frontend necesita HTTPS incluso con IP pública sin dominio
+## Despliegue en AWS (EP2)
 
-MSAL usa `crypto.subtle` del navegador para PKCE, y los navegadores solo exponen esa
-API en un **contexto seguro**: `https://` o `http://localhost`. Una IP pública servida
-por HTTP plano (`http://<ip>`) no califica, y MSAL falla con `crypto_nonexistent` — la
-app queda en blanco, sin ningún error visible salvo en la consola del navegador.
-
-Como no hay dominio propio apuntando a la instancia EC2, se usa un certificado
-autofirmado generado directamente en el servidor (el navegador va a mostrar una
-advertencia de "sitio no seguro" que hay que aceptar manualmente, es esperado):
-
-```bash
-mkdir -p ~/certs
-openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
-  -keyout ~/certs/privkey.pem -out ~/certs/fullchain.pem \
-  -subj "/CN=<IP_PUBLICA>" \
-  -addext "subjectAltName=IP:<IP_PUBLICA>"
+```text
+Navegador → https://<dominio-frontend>            (nginx en EC2, certificado Let's Encrypt)
+          → https://<api-id>.execute-api.<region>.amazonaws.com   (API Gateway, HTTP API)
+          → http://<dominio-backend>:8080         (Spring Boot en EC2, contenedor Docker)
 ```
 
-Importante: en el App Registration de Entra ID hay que agregar
-`https://<IP_PUBLICA>/` como Redirect URI adicional de tipo SPA (además de
-`http://localhost:4200/`), o el login va a fallar con `redirect_uri_mismatch`.
+- **Dos instancias EC2** (Amazon Linux 2023 con Docker y git): una para el frontend
+  (puertos 80/443 abiertos en el Security Group) y otra para el backend (puerto 8080).
+- **DNS en Cloudflare**, con dos registros `A` en modo **DNS only** (sin proxy): uno por
+  cada instancia. Los certificados, el redirect URI de Entra ID, `ALLOWED_ORIGINS` y la
+  integración del Gateway usan estos *nombres*, no las IPs.
+- **API Gateway (HTTP API)** con una ruta `ANY /{proxy+}` y una integración HTTP hacia
+  `http://<dominio-backend>:8080/{proxy}`. El CORS se configura en el Gateway (origen =
+  dominio del frontend, headers `authorization` y `content-type`, métodos
+  `GET, POST, PUT, DELETE, OPTIONS`). El Gateway solo enruta: la validación del JWT sigue
+  siendo responsabilidad del backend.
+- El `apiBaseUrl` del frontend (`src/environments/environment.ts`, no versionado) apunta a
+  la URL de invocación del Gateway y queda compilado dentro del bundle, así que cambiarlo
+  requiere reconstruir la imagen del frontend.
+
+### Por qué el frontend necesita HTTPS
+
+MSAL usa `crypto.subtle` del navegador para PKCE, y los navegadores solo exponen esa
+API en un **contexto seguro**: `https://` o `http://localhost`. Servir el frontend por
+HTTP plano desde una IP pública hace que MSAL falle con `crypto_nonexistent` y la app
+quede en blanco, sin más error que el de la consola del navegador. Además, una página
+HTTPS no puede llamar a un backend HTTP (contenido mixto): por eso el backend se expone
+a través del API Gateway, que ya publica HTTPS.
+
+### Certificado del frontend (Let's Encrypt)
+
+Con el registro `A` del dominio apuntando a la instancia y el puerto 80 libre:
+
+```bash
+docker run --rm -p 80:80 -v /etc/letsencrypt:/etc/letsencrypt certbot/certbot certonly \
+  --standalone -d <dominio-frontend> --non-interactive --agree-tos \
+  --register-unsafely-without-email
+mkdir -p ~/certs
+sudo cp -L /etc/letsencrypt/live/<dominio-frontend>/fullchain.pem ~/certs/
+sudo cp -L /etc/letsencrypt/live/<dominio-frontend>/privkey.pem ~/certs/
+sudo chown $USER ~/certs/*.pem
+```
+
+El certificado se monta en el contenedor de nginx (`-v ~/certs:/etc/nginx/certs:ro`) y
+no se versiona. Dura 90 días y hay que renovarlo repitiendo el comando.
+
+### Configuración necesaria en Entra ID
+
+En el App Registration hay que agregar `https://<dominio-frontend>` como Redirect URI de
+tipo **Single-page application**, sin barra final (Azure compara el texto exacto), además
+de `http://localhost:4200` para el desarrollo local; si no, el login falla con
+`redirect_uri_mismatch`.
+
+### Al reiniciar el laboratorio (AWS Academy)
+
+Las IPs públicas cambian al detener y volver a iniciar las instancias. Como todo lo demás
+usa nombres de dominio, solo hay que **actualizar los dos registros `A` en Cloudflare**
+con las IPs nuevas. Los contenedores tienen `--restart unless-stopped` y arrancan solos
+con la instancia.
