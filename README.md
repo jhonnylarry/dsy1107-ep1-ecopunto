@@ -111,6 +111,22 @@ Probado end-to-end contra el tenant real de Entra ID, con dos usuarios de prueba
 | `PUT`/`POST`/`DELETE /api/puntos-limpios` con token válido, sin rol `ENCARGADO` | 403 |
 | `PUT`/`POST`/`DELETE /api/puntos-limpios` con token válido y rol `ENCARGADO` | 200/201/204 |
 
+**Verificado también en el despliegue real de AWS** (frontend en EC2 → API Gateway →
+backend en EC2, ejecutado desde el navegador con el origen real), con los mismos dos
+usuarios:
+
+| Escenario | Resultado |
+|---|---|
+| Público sin token / protegido sin token | 200 / 401 |
+| Usuario sin rol: lectura (`GET` puntos y reportes) | 200 |
+| Usuario sin rol: `POST` / `PUT` / `DELETE` | 403 |
+| Usuario `ENCARGADO`: `POST` / `PUT` / `DELETE` | 201 / 200 / 204 |
+| Usuario `ENCARGADO`: `DELETE` de un id inexistente | 404 |
+
+Detalle con los claims de cada token en [`docs/evidencia/ep2-matriz-seguridad.md`](docs/evidencia/ep2-matriz-seguridad.md);
+el script [`docs/evidencia/probar-matriz.js`](docs/evidencia/probar-matriz.js) permite repetir la prueba
+pegándolo en la consola del navegador con una sesión iniciada.
+
 Nota sobre permisos: los scopes delegados (`reportes.read`/`reportes.write`) se
 rigen por **consentimiento** — el consentimiento de administrador otorgado una
 vez en el App Registration aplica a todos los usuarios del tenant automáticamente.
