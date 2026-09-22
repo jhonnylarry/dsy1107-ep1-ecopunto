@@ -64,6 +64,38 @@ respuesta la emite API Gateway, no Spring):
 | `GET /api/puntos-limpios` con token válido (`encargado1`) | 200 | 200 | JSON del backend |
 | `POST` / `PUT` / `DELETE` con rol `ENCARGADO` | 201/200/204 | 201/200/204 | JSON del backend |
 
+## Reportes y persistencia (2026-09-22)
+
+Con el backend ya conectado a PostgreSQL (contenedor con volumen persistente en la
+instancia del backend):
+
+| Escenario | Esperado | Obtenido |
+|---|---:|---:|
+| `GET /api/puntos-limpios/1/reportes` sin token | 401 | 401 (Gateway) |
+| `POST /api/puntos-limpios/1/reportes` sin token | 401 | 401 (Gateway) |
+| `POST /api/puntos-limpios/1/reportes` con token (`encargado1`) | 201 | 201 |
+| `GET /api/puntos-limpios/1/reportes` con token | 200 | 200 |
+| `POST /api/puntos-limpios/9999/reportes` (punto inexistente) | 404 | 404 |
+
+JSON devuelto por `GET /api/puntos-limpios/1/reportes` (se abrevia el punto limpio
+anidado). El autor sale del claim `preferred_username` del token, no del cliente:
+
+```json
+[
+  {
+    "puntoLimpio": { "id": 1, "nombre": "Punto Limpio Ñuñoa" },
+    "descripcion": "Contenedor de vidrio lleno, no reciben más vidrio",
+    "autorEmail": "encargado1@jolarraguibel.onmicrosoft.com",
+    "creadoEn": "2026-09-22T03:12:52.348439Z",
+    "estado": "PENDIENTE",
+    "id": 1
+  }
+]
+```
+
+Persistencia: un registro insertado en la base siguió disponible tras reiniciar los
+contenedores de PostgreSQL y del backend.
+
 Los 403 por falta de rol los sigue emitiendo el backend (el token es válido para el
 Gateway, pero no trae el rol que exige la operación).
 

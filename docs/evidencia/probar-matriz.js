@@ -44,6 +44,13 @@
   await probar('PUT sin token', 401, '/api/puntos-limpios/1', { method: 'PUT', headers: sinToken, body: punto });
   await probar('GET protegido con token', 200, '/api/puntos-limpios', { headers: auth });
   await probar('GET reportes (scope reportes.read)', 200, '/api/puntos-limpios/1/reportes', { headers: auth });
+  await probar('GET reportes sin token', 401, '/api/puntos-limpios/1/reportes');
+  await probar('POST reporte (scope reportes.write)', 201, '/api/puntos-limpios/1/reportes', {
+    method: 'POST', headers: auth, body: JSON.stringify({ descripcion: 'Reporte de prueba (script de evidencia)' }),
+  });
+  await probar('POST reporte a punto inexistente', 404, '/api/puntos-limpios/999999/reportes', {
+    method: 'POST', headers: auth, body: JSON.stringify({ descripcion: 'x' }),
+  });
 
   if (esEncargado) {
     const creado = await probar('POST crear (ENCARGADO)', 201, '/api/puntos-limpios', { method: 'POST', headers: auth, body: punto });

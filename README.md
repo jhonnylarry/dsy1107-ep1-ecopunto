@@ -200,6 +200,42 @@ Navegador → https://<dominio-frontend>            (nginx en EC2, certificado L
   la URL de invocación del Gateway y queda compilado dentro del bundle, así que cambiarlo
   requiere reconstruir la imagen del frontend.
 
+### Base de datos (PostgreSQL)
+
+En la instancia del backend corre un contenedor `postgres:16-alpine` con un volumen
+persistente, en una red interna de Docker compartida con el backend (el puerto 5432 no
+se expone a Internet). El backend no necesita cambios de código: toma la conexión de
+`DB_URL`, `DB_USER` y `DB_PASSWORD`, Hibernate crea las tablas (`ddl-auto: update`) y
+los datos de ejemplo se cargan solo si la base está vacía. Sin esas variables usa H2 en
+memoria, para desarrollo local.
+
+```bash
+# credenciales generadas en el propio servidor, fuera del repo
+PASS=$(openssl rand -hex 24)
+cat > ~/.ecopunto-db.env <<EOF
+POSTGRES_DB=ecopunto
+POSTGRES_USER=ecopunto
+POSTGRES_PASSWORD=$PASS
+DB_URL=jdbc:postgresql://ecopunto-db:5432/ecopunto
+DB_USER=ecopunto
+DB_PASSWORD=$PASS
+EOF
+chmod 600 ~/.ecopunto-db.env
+
+docker network create ecopunto-net
+docker run -d --name ecopunto-db --restart unless-stopped --network ecopunto-net \
+  --env-file ~/.ecopunto-db.env -v ecopunto-pgdata:/var/lib/postgresql/data \
+  postgres:16-alpine
+
+docker run -d --name ecopunto-backend --restart unless-stopped --network ecopunto-net \
+  -p 8080:8080 --env-file ~/.ecopunto-db.env \
+  -e ALLOWED_ORIGINS=https://<dominio-frontend> \
+  -e JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0 \
+  -e JWT_JWKS_URI=https://login.microsoftonline.com/<tenantId>/discovery/v2.0/keys \
+  -e JWT_AUDIENCE=<clientId> \
+  ecopunto-backend
+```
+
 ### Por qué el frontend necesita HTTPS
 
 MSAL usa `crypto.subtle` del navegador para PKCE, y los navegadores solo exponen esa
