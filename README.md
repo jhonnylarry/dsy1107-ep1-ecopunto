@@ -139,7 +139,9 @@ usuarios:
 
 Detalle con los claims de cada token en [`docs/evidencia/ep2-matriz-seguridad.md`](docs/evidencia/ep2-matriz-seguridad.md);
 el script [`docs/evidencia/probar-matriz.js`](docs/evidencia/probar-matriz.js) permite repetir la prueba
-pegándolo en la consola del navegador con una sesión iniciada.
+pegándolo en la consola del navegador con una sesión iniciada. Evidencia visual del
+registro de autoservicio y del comportamiento de un usuario sin rol en la UI en
+[`docs/evidencia/usuario-sin-rol.md`](docs/evidencia/usuario-sin-rol.md).
 
 Nota sobre permisos: los scopes delegados (`reportes.read`/`reportes.write`) se
 rigen por **consentimiento** — el consentimiento de administrador otorgado una
