@@ -48,10 +48,29 @@ Respuesta del backend en el caso 403 (token válido, permiso insuficiente):
 
 Tras los intentos sin rol, el registro `id 1` se mantuvo sin cambios.
 
+## Validación JWT en el API Gateway (2026-09-22)
+
+Con el JWT authorizer asociado a las rutas `GET/POST/PUT/DELETE /api/{proxy+}`, los
+tokens ausentes o inválidos se rechazan **en el Gateway**, sin llegar al backend (la
+respuesta la emite API Gateway, no Spring):
+
+| Escenario | Esperado | Obtenido | Respuesta |
+|---|---:|---:|---|
+| `GET /api/puntos-limpios` sin token | 401 | 401 | `{"message":"Unauthorized"}` (Gateway) |
+| `GET /api/puntos-limpios` con token basura | 401 | 401 | `{"message":"Unauthorized"}` (Gateway) |
+| `GET /api/puntos-limpios` con token de firma falsificada (issuer y audience correctos) | 401 | 401 | `{"message":"Unauthorized"}` (Gateway) |
+| `PATCH /api/puntos-limpios/1` (método sin ruta) | 404 | 404 | `{"message":"Not Found"}` (Gateway) |
+| Preflight `OPTIONS` de GET/POST/PUT/DELETE desde el origen del frontend | 204 | 204 | CORS del Gateway |
+| `GET /api/puntos-limpios` con token válido (`encargado1`) | 200 | 200 | JSON del backend |
+| `POST` / `PUT` / `DELETE` con rol `ENCARGADO` | 201/200/204 | 201/200/204 | JSON del backend |
+
+Los 403 por falta de rol los sigue emitiendo el backend (el token es válido para el
+Gateway, pero no trae el rol que exige la operación).
+
 ## Conclusiones
 
-- La validación de firma, issuer, audience y vigencia ocurre en el backend (Resource Server);
-  el API Gateway solo enruta y aplica CORS.
+- La validación de firma, issuer, audience y vigencia ocurre dos veces: primero en el API
+  Gateway (JWT authorizer) y de nuevo en el backend (Resource Server).
 - La autorización por rol se aplica en el servidor: ocultar los botones en la interfaz
   no es la única barrera, un usuario sin el rol recibe 403 aunque llame directo a la API.
 - Los scopes delegados llegan a ambos usuarios por el consentimiento de administrador del

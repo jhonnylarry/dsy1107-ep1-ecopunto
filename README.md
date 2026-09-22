@@ -176,11 +176,26 @@ Navegador → https://<dominio-frontend>            (nginx en EC2, certificado L
 - **DNS en Cloudflare**, con dos registros `A` en modo **DNS only** (sin proxy): uno por
   cada instancia. Los certificados, el redirect URI de Entra ID, `ALLOWED_ORIGINS` y la
   integración del Gateway usan estos *nombres*, no las IPs.
-- **API Gateway (HTTP API)** con una ruta `ANY /{proxy+}` y una integración HTTP hacia
-  `http://<dominio-backend>:8080/{proxy}`. El CORS se configura en el Gateway (origen =
-  dominio del frontend, headers `authorization` y `content-type`, métodos
-  `GET, POST, PUT, DELETE, OPTIONS`). El Gateway solo enruta: la validación del JWT sigue
-  siendo responsabilidad del backend.
+- **API Gateway (HTTP API)** con estas rutas:
+
+  | Ruta | Autorización | Integración |
+  |---|---|---|
+  | `ANY /public/{proxy+}` | ninguna | `http://<dominio-backend>:8080/public/{proxy}` |
+  | `GET /api/{proxy+}` | JWT authorizer | `http://<dominio-backend>:8080/api/{proxy}` |
+  | `POST /api/{proxy+}` | JWT authorizer | ídem |
+  | `PUT /api/{proxy+}` | JWT authorizer | ídem |
+  | `DELETE /api/{proxy+}` | JWT authorizer | ídem |
+
+  El **JWT authorizer** valida en el propio Gateway la firma, la vigencia, el issuer
+  (`https://login.microsoftonline.com/<tenantId>/v2.0`) y el audience (Client ID) del
+  token, y responde 401 sin llegar al backend si algo falla. El backend vuelve a validar
+  el token y aplica la autorización por rol (403), como defensa en profundidad.
+- **CORS** configurado en el Gateway: origen = dominio del frontend, headers
+  `authorization` y `content-type`, métodos `GET, POST, PUT, DELETE, OPTIONS`.
+  Las rutas protegidas usan métodos explícitos y no `ANY` a propósito: `ANY` incluye
+  `OPTIONS`, y el preflight del navegador (que no lleva token) chocaría con el
+  authorizer. Sin ruta que coincida con `OPTIONS`, el Gateway responde el preflight
+  directamente con la configuración de CORS.
 - El `apiBaseUrl` del frontend (`src/environments/environment.ts`, no versionado) apunta a
   la URL de invocación del Gateway y queda compilado dentro del bundle, así que cambiarlo
   requiere reconstruir la imagen del frontend.
