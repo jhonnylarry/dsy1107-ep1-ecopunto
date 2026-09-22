@@ -15,7 +15,10 @@
       </div>
     } @else {
       <p class="session-label">Necesitás iniciar sesión para ver tus puntos limpios</p>
-      <button type="button" (click)="auth.login()">Iniciar sesión</button>
+      <div class="actions">
+        <button type="button" (click)="auth.login()">Iniciar sesión</button>
+        <button type="button" class="secondary" (click)="auth.register()">Crear cuenta</button>
+      </div>
     }
   </section>
 </main>

@@ -38,6 +38,15 @@ export class AuthService {
     }).subscribe();
   }
 
+  register(): void {
+    // prompt=create abre directamente el flujo de registro de autoservicio
+    // (user flow de External Identities asociado a la app) en vez del login.
+    this.msal.loginRedirect({
+      scopes: ['openid', 'profile', environment.auth.apiScope],
+      prompt: 'create',
+    }).subscribe();
+  }
+
   logout(): void {
     this.msal.logoutRedirect({
       account: this.getAccount() ?? undefined,
