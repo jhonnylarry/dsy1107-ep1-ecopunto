@@ -142,7 +142,8 @@ el script [`docs/evidencia/probar-matriz.js`](docs/evidencia/probar-matriz.js) p
 pegándolo en la consola del navegador con una sesión iniciada. Evidencia visual del
 comportamiento de la UI según el rol: [`docs/evidencia/usuario-sin-rol.md`](docs/evidencia/usuario-sin-rol.md)
 (registro de autoservicio, sin botones de edición) y [`docs/evidencia/usuario-encargado.md`](docs/evidencia/usuario-encargado.md)
-(CRUD completo habilitado).
+(CRUD completo habilitado). Configuración en consola de AWS API Gateway y Microsoft
+Entra ID en [`docs/evidencia/api-gateway-y-entra.md`](docs/evidencia/api-gateway-y-entra.md).
 
 Nota sobre permisos: los scopes delegados (`reportes.read`/`reportes.write`) se
 rigen por **consentimiento** — el consentimiento de administrador otorgado una
