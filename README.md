@@ -19,6 +19,10 @@ laboratorio está encendido. La configuración del frontend para producción
 (`src/environments/environment.ts`, con `apiBaseUrl` apuntando al Gateway) no se versiona;
 el repositorio incluye la plantilla `environment.example.ts`.
 
+## Presentación
+
+[`docs/presentacion/EcoPunto-EP2.pptx`](docs/presentacion/EcoPunto-EP2.pptx) — presentación de la Evaluación Parcial 2.
+
 ## Arquitectura
 
 ```mermaid
