@@ -1,0 +1,9 @@
+[Unit]
+Description=Actualiza el registro A de Cloudflare con la IP publica de esta instancia
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ecopunto-ddns.env
+ExecStart=/usr/local/bin/ecopunto-ddns

@@ -221,6 +221,30 @@ de `http://localhost:4200` para el desarrollo local; si no, el login falla con
 ### Al reiniciar el laboratorio (AWS Academy)
 
 Las IPs públicas cambian al detener y volver a iniciar las instancias. Como todo lo demás
-usa nombres de dominio, solo hay que **actualizar los dos registros `A` en Cloudflare**
-con las IPs nuevas. Los contenedores tienen `--restart unless-stopped` y arrancan solos
-con la instancia.
+usa nombres de dominio, lo único que depende de la IP son los dos registros `A` de
+Cloudflare, y **se actualizan solos**: cada instancia corre un servicio de DNS dinámico
+([`deploy/ddns/`](deploy/ddns/)) que al arrancar, y cada 5 minutos, lee su IP pública y
+actualiza su registro por la API de Cloudflare. Los contenedores tienen
+`--restart unless-stopped` y arrancan solos con la instancia, así que reiniciar el
+laboratorio no requiere ningún paso manual.
+
+#### Instalación del DNS dinámico (una vez por instancia)
+
+1. En Cloudflare, crear un token de API con permiso **Zone → DNS → Edit** limitado a la
+   zona del dominio, y anotar el **Zone ID** (pestaña Overview del dominio).
+2. Crear en la instancia el archivo `/etc/ecopunto-ddns.env` (permisos `600`, solo root),
+   con el registro que corresponde a esa instancia:
+
+   ```bash
+   CF_API_TOKEN=<token>
+   CF_ZONE_ID=<zone-id>
+   DDNS_RECORD=<dominio-de-esta-instancia>
+   ```
+
+3. Instalar el servicio desde el repo clonado en la instancia:
+
+   ```bash
+   cd deploy/ddns && sudo bash install.sh
+   ```
+
+El token no se versiona ni se comparte: vive únicamente en ese archivo de cada instancia.
