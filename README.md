@@ -6,7 +6,8 @@
 > **EP3 / EP4 · Mensajería asíncrona con RabbitMQ:** el backend publica eventos y tareas que
 > procesan cuatro microservicios nuevos (notificaciones, estadísticas, tickets y administrador de
 > RabbitMQ) sobre un clúster de 2 nodos. Documentación completa en
-> [`docs/mensajeria.md`](docs/mensajeria.md).
+> [`docs/mensajeria.md`](docs/mensajeria.md) · despliegue: [`docs/despliegue-ep3.md`](docs/despliegue-ep3.md) ·
+> guion de la demo: [`docs/guion-demo-ep4.md`](docs/guion-demo-ep4.md).
 
 Sistema para consultar puntos limpios de reciclaje y reportar si un material ya no se puede depositar en un punto específico.
 
