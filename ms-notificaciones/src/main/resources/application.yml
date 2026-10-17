@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: ms-notificaciones
+  main:
+    # Servicio sin API HTTP: solo consume mensajes.
+    web-application-type: none
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:notificaciones}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:ecopunto}
+    password: ${RABBITMQ_PASSWORD:ecopunto}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        default-requeue-rejected: false
+
+# Topología de mensajería de este consumidor, centralizada.
+ecopunto:
+  messaging:
+    exchanges:
+      eventos: ecopunto.events
+      dead-letter: ecopunto.dlx
+    cola: notificaciones.reportes
+    cola-dlq: notificaciones.reportes.dlq
+    # Una cola, dos bindings: aviso al encargado (creado) y al vecino (resuelto).
+    routing-keys:
+      reporte-creado: reporte.creado
+      reporte-resuelto: reporte.resuelto
+    reintentos:
+      max-intentos: 3
+      espera-inicial: 1s
+  notificaciones:
+    correo-encargados: ${CORREO_ENCARGADOS:encargados@ecopunto.cl}
