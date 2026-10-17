@@ -22,4 +22,9 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/tickets/tickets').then((m) => m.Tickets),
     canActivate: [authGuard],
   },
+  {
+    path: 'admin-rabbitmq',
+    loadComponent: () => import('./pages/admin-rabbitmq/admin-rabbitmq').then((m) => m.AdminRabbitmq),
+    canActivate: [authGuard],
+  },
 ];

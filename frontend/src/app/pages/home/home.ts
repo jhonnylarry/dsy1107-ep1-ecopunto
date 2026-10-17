@@ -11,12 +11,16 @@ import { AuthService } from '../../auth/auth.service';
 })
 export class Home implements OnInit {
   protected readonly esEncargado = signal(false);
+  protected readonly esAdmin = signal(false);
 
   constructor(public readonly auth: AuthService) {}
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
-      this.auth.getRoles().then((roles) => this.esEncargado.set(roles.includes('ENCARGADO')));
+      this.auth.getRoles().then((roles) => {
+        this.esEncargado.set(roles.includes('ENCARGADO'));
+        this.esAdmin.set(roles.includes('ADMIN'));
+      });
     }
   }
 }

@@ -29,3 +29,25 @@ export interface Estadisticas {
   reportesPorComuna: Record<string, number>;
   reportesPorPunto: Record<string, number>;
 }
+
+// ---- Administración de RabbitMQ (ms-rabbit-admin) ----
+export interface ColaInfo {
+  nombre: string;
+  tipo: string;
+  durable: boolean;
+  mensajes: number;
+  consumidores: number;
+  argumentos: Record<string, unknown>;
+}
+
+export interface ExchangeInfo {
+  nombre: string;
+  tipo: string;
+  durable: boolean;
+}
+
+export interface BindingInfo {
+  exchange: string;
+  cola: string;
+  routingKey: string;
+}

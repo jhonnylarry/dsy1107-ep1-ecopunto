@@ -15,6 +15,9 @@
         @if (esEncargado()) {
           <a routerLink="/tickets"><button type="button" class="secondary">Tickets de mantención</button></a>
         }
+        @if (esAdmin()) {
+          <a routerLink="/admin-rabbitmq"><button type="button" class="secondary">Administrar RabbitMQ</button></a>
+        }
         <button type="button" class="secondary" (click)="auth.logout()">Cerrar sesión</button>
       </div>
     } @else {

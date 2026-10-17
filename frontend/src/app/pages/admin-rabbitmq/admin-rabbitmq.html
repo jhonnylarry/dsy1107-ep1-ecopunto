@@ -1,0 +1,114 @@
+<main class="container ancho">
+  <a routerLink="/" class="back-link">← Volver</a>
+  <div class="page-header">
+    <div>
+      <h1>Administración de RabbitMQ</h1>
+      <p class="subtitulo">Colas, exchanges y bindings del clúster, vía ms-rabbit-admin.</p>
+    </div>
+    <button type="button" class="secondary" (click)="cargar()">Actualizar</button>
+  </div>
+
+  @if (aviso()) {
+    <p class="alerta-info">{{ aviso() }}</p>
+  }
+  @if (error()) {
+    <div class="alerta-error">
+      <p>{{ error() }}</p>
+      @for (campo of erroresCampo() | keyvalue; track campo.key) {
+        <p class="campo"><strong>{{ campo.key }}:</strong> {{ campo.value }}</p>
+      }
+    </div>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Cargando topología…</p>
+  } @else {
+    <!-- ================= Colas ================= -->
+    <section class="panel">
+      <h2>Colas <span class="contador">{{ colas().length }}</span></h2>
+      <form class="crear" (ngSubmit)="crearCola()">
+        <input name="colaNombre" [(ngModel)]="nuevaCola.nombre" placeholder="nombre, ej. auditoria.reportes" />
+        <select name="colaTipo" [(ngModel)]="nuevaCola.tipo">
+          <option value="QUORUM">Quorum</option>
+          <option value="CLASSIC">Classic</option>
+        </select>
+        <label class="check"><input type="checkbox" name="colaDlq" [(ngModel)]="nuevaCola.conDlq" /> con DLQ</label>
+        <button type="submit">Crear cola</button>
+      </form>
+      <table class="tabla">
+        <thead><tr><th>Nombre</th><th>Tipo</th><th>Mensajes</th><th>Consumidores</th><th>DLQ</th><th></th></tr></thead>
+        <tbody>
+          @for (c of colas(); track c.nombre) {
+            <tr>
+              <td><code>{{ c.nombre }}</code></td>
+              <td><span class="badge normal">{{ c.tipo }}</span></td>
+              <td>{{ c.mensajes }}</td>
+              <td>{{ c.consumidores }}</td>
+              <td>@if (tieneDlq(c); as dlq) { <code class="dlq">→ {{ dlq }}</code> } @else { <span class="vacio">—</span> }</td>
+              <td class="acciones"><button type="button" class="danger mini" (click)="eliminarCola(c)">Eliminar</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ================= Exchanges ================= -->
+    <section class="panel">
+      <h2>Exchanges <span class="contador">{{ exchangesPropios().length }}</span></h2>
+      <form class="crear" (ngSubmit)="crearExchange()">
+        <input name="exNombre" [(ngModel)]="nuevoExchange.nombre" placeholder="nombre, ej. ecopunto.auditoria" />
+        <select name="exTipo" [(ngModel)]="nuevoExchange.tipo">
+          <option value="TOPIC">Topic</option>
+          <option value="DIRECT">Direct</option>
+          <option value="FANOUT">Fanout</option>
+          <option value="HEADERS">Headers</option>
+        </select>
+        <button type="submit">Crear exchange</button>
+      </form>
+      <table class="tabla">
+        <thead><tr><th>Nombre</th><th>Tipo</th><th>Durable</th><th></th></tr></thead>
+        <tbody>
+          @for (e of exchangesPropios(); track e.nombre) {
+            <tr>
+              <td><code>{{ e.nombre }}</code></td>
+              <td><span class="badge en_revision">{{ e.tipo }}</span></td>
+              <td>{{ e.durable ? 'Sí' : 'No' }}</td>
+              <td class="acciones"><button type="button" class="danger mini" (click)="eliminarExchange(e)">Eliminar</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p class="nota">Se ocultan los exchanges predeclarados por RabbitMQ (<code>amq.*</code>).</p>
+    </section>
+
+    <!-- ================= Bindings ================= -->
+    <section class="panel">
+      <h2>Bindings <span class="contador">{{ bindingsPropios().length }}</span></h2>
+      <form class="crear" (ngSubmit)="crearBinding()">
+        <select name="bEx" [(ngModel)]="nuevoBinding.exchange">
+          <option value="" disabled>exchange</option>
+          @for (e of exchangesPropios(); track e.nombre) { <option [value]="e.nombre">{{ e.nombre }}</option> }
+        </select>
+        <input name="bRk" [(ngModel)]="nuevoBinding.routingKey" placeholder="routing key, ej. reporte.#" />
+        <select name="bCola" [(ngModel)]="nuevoBinding.cola">
+          <option value="" disabled>cola</option>
+          @for (c of colas(); track c.nombre) { <option [value]="c.nombre">{{ c.nombre }}</option> }
+        </select>
+        <button type="submit">Crear binding</button>
+      </form>
+      <table class="tabla">
+        <thead><tr><th>Exchange</th><th>Routing key</th><th>Cola</th><th></th></tr></thead>
+        <tbody>
+          @for (b of bindingsPropios(); track b.exchange + b.routingKey + b.cola) {
+            <tr>
+              <td><code>{{ b.exchange }}</code></td>
+              <td><code class="rk">{{ b.routingKey }}</code></td>
+              <td><code>{{ b.cola }}</code></td>
+              <td class="acciones"><button type="button" class="danger mini" (click)="eliminarBinding(b)">Eliminar</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+</main>
