@@ -1,5 +1,9 @@
-# Stack de mensajería de EcoPunto: clúster RabbitMQ de 2 nodos.
-# Las credenciales y la cookie se leen desde .env (ver .env.example).
+# EcoPunto · stack backend completo (EP3/EP4)
+#   - PostgreSQL (una base por microservicio)
+#   - Clúster RabbitMQ de 2 nodos (rabbit1 + rabbit2) con Management UI
+#   - ecopunto-backend (productor) y 4 microservicios
+# Variables y secretos en .env (copiar desde .env.example).
+
 x-rabbitmq-node: &rabbitmq-node
   image: rabbitmq:4.2-management
   entrypoint: ["/bin/sh", "/etc/rabbitmq/entrypoint.sh"]
@@ -7,9 +11,6 @@ x-rabbitmq-node: &rabbitmq-node
     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ecopunto}
     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-ecopunto}
     RABBITMQ_COOKIE: ${RABBITMQ_COOKIE:-ecopunto-cookie-dev}
-  volumes:
-    - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-    - ./infra/rabbitmq/entrypoint.sh:/etc/rabbitmq/entrypoint.sh:ro
   healthcheck:
     test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
     interval: 10s
@@ -18,7 +19,49 @@ x-rabbitmq-node: &rabbitmq-node
   networks: [ecopunto-net]
   restart: unless-stopped
 
+# Variables comunes de los servicios Spring Boot.
+x-spring-env: &spring-env
+  RABBITMQ_ADDRESSES: rabbit1:5672,rabbit2:5672
+  RABBITMQ_USER: ${RABBITMQ_USER:-ecopunto}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-ecopunto}
+  DB_USER: ${POSTGRES_USER:-ecopunto}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-ecopunto}
+  JWT_ISSUER: ${JWT_ISSUER:-https://login.microsoftonline.com/common/v2.0}
+  JWT_JWKS_URI: ${JWT_JWKS_URI:-https://login.microsoftonline.com/common/discovery/v2.0/keys}
+  JWT_AUDIENCE: ${JWT_AUDIENCE:-api://ecopunto-placeholder}
+  ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:4200}
+  JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
+
+x-spring-service: &spring-service
+  networks: [ecopunto-net]
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbit1:
+      condition: service_healthy
+    rabbit2:
+      condition: service_healthy
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecopunto-db
+    environment:
+      POSTGRES_DB: ecopunto
+      POSTGRES_USER: ${POSTGRES_USER:-ecopunto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ecopunto}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ecopunto} -d ecopunto"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [ecopunto-net]
+    restart: unless-stopped
+
   rabbit1:
     <<: *rabbitmq-node
     hostname: rabbit1
@@ -46,7 +89,52 @@ services:
       rabbit1:
         condition: service_healthy
 
+  backend:
+    <<: *spring-service
+    build: ./backend
+    container_name: ecopunto-backend
+    ports: ["8080:8080"]
+    environment:
+      <<: *spring-env
+      DB_URL: jdbc:postgresql://postgres:5432/ecopunto
+
+  ms-notificaciones:
+    <<: *spring-service
+    build: ./ms-notificaciones
+    container_name: ecopunto-ms-notificaciones
+    environment:
+      <<: *spring-env
+      DB_URL: jdbc:postgresql://postgres:5432/ecopunto_notificaciones
+
+  ms-estadisticas:
+    <<: *spring-service
+    build: ./ms-estadisticas
+    container_name: ecopunto-ms-estadisticas
+    ports: ["8082:8082"]
+    environment:
+      <<: *spring-env
+      DB_URL: jdbc:postgresql://postgres:5432/ecopunto_estadisticas
+
+  ms-tickets:
+    <<: *spring-service
+    build: ./ms-tickets
+    container_name: ecopunto-ms-tickets
+    ports: ["8083:8083"]
+    environment:
+      <<: *spring-env
+      DB_URL: jdbc:postgresql://postgres:5432/ecopunto_tickets
+
+  ms-rabbit-admin:
+    <<: *spring-service
+    build: ./ms-rabbit-admin
+    container_name: ecopunto-ms-rabbit-admin
+    ports: ["8084:8084"]
+    environment:
+      <<: *spring-env
+      RABBITMQ_MANAGEMENT_URL: http://rabbit1:15672
+
 volumes:
+  pgdata:
   rabbit1-data:
   rabbit2-data:
 
