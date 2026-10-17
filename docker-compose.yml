@@ -1,0 +1,55 @@
+# Stack de mensajería de EcoPunto: clúster RabbitMQ de 2 nodos.
+# Las credenciales y la cookie se leen desde .env (ver .env.example).
+x-rabbitmq-node: &rabbitmq-node
+  image: rabbitmq:4.2-management
+  entrypoint: ["/bin/sh", "/etc/rabbitmq/entrypoint.sh"]
+  environment:
+    RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ecopunto}
+    RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-ecopunto}
+    RABBITMQ_COOKIE: ${RABBITMQ_COOKIE:-ecopunto-cookie-dev}
+  volumes:
+    - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    - ./infra/rabbitmq/entrypoint.sh:/etc/rabbitmq/entrypoint.sh:ro
+  healthcheck:
+    test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+  networks: [ecopunto-net]
+  restart: unless-stopped
+
+services:
+  rabbit1:
+    <<: *rabbitmq-node
+    hostname: rabbit1
+    container_name: ecopunto-rabbit1
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infra/rabbitmq/entrypoint.sh:/etc/rabbitmq/entrypoint.sh:ro
+      - rabbit1-data:/var/lib/rabbitmq
+
+  rabbit2:
+    <<: *rabbitmq-node
+    hostname: rabbit2
+    container_name: ecopunto-rabbit2
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infra/rabbitmq/entrypoint.sh:/etc/rabbitmq/entrypoint.sh:ro
+      - rabbit2-data:/var/lib/rabbitmq
+    depends_on:
+      rabbit1:
+        condition: service_healthy
+
+volumes:
+  rabbit1-data:
+  rabbit2-data:
+
+networks:
+  ecopunto-net:
+    name: ecopunto-net

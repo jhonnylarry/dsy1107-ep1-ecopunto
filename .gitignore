@@ -1,3 +1,6 @@
 # Configuración local de Claude Code — nunca debe subirse al repo
 .claude/
 CLAUDE.md
+
+# Secretos locales
+.env
