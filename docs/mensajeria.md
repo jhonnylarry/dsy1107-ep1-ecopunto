@@ -149,7 +149,7 @@ No se usa `requeue=true`: un mensaje defectuoso reencolado volvería a fallar en
 
 ## 7. Microservicio administrador (`ms-rabbit-admin`)
 
-Requiere el rol `ADMIN` en el token.
+Requiere el rol `ADMIN` en el token. El frontend incluye la página **Administrar RabbitMQ** (`/admin-rabbitmq`, visible solo para `ADMIN`), que lista colas, exchanges y bindings y permite crearlos y eliminarlos usando esta API; los errores de validación se muestran por campo.
 
 | Método | Ruta | Cuerpo | Respuestas |
 |---|---|---|---|

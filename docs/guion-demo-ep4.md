@@ -23,7 +23,7 @@ Orden sugerido: cada bloque cubre uno o más requisitos de la pauta. Tener abier
 3. *Marcar resuelto* → notificación al vecino; **Estadísticas** actualizadas.
 4. **Falla controlada:** publicar desde el Management UI (*Publish message* en `ecopunto.tareas`, routing key `ticket.mantencion`) un JSON inválido → log `[DLQ] motivo=NO_RECUPERABLE` y el mensaje en `tickets.mantencion.dlq` (*Get messages*, ver `x-death`).
 5. **Consumidor caído:** `docker stop ecopunto-ms-tickets`, pasar otro reporte a revisión (responde al instante), mostrar el mensaje *Ready* en la cola, `docker start` y ver el ticket generado.
-6. **Administrador:** `POST /api/admin/queues` con un nombre inválido (`amq.x`) → 400; crear `auditoria.reportes` con DLQ → 201 y aparece en el Management UI; eliminarla → 204.
+6. **Administrador** (usuario con rol `ADMIN` → *Administrar RabbitMQ*): crear una cola con nombre `amq.x` → error de validación mostrado en pantalla (400); crear `ecopunto.auditoria` (topic), la cola `auditoria.reportes` con DLQ y el binding `reporte.#` → aparecen en la página y en el Management UI; intentar eliminar `tickets.mantencion` → 409 (tiene consumidor); eliminar lo creado. En los logs de `ms-rabbit-admin` queda `[ADMIN] <correo> creó …`.
 
 ```bash
 # logs en vivo durante la demo
