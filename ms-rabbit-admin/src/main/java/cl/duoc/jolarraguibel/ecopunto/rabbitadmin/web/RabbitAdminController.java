@@ -11,9 +11,9 @@ import cl.duoc.jolarraguibel.ecopunto.rabbitadmin.servicio.RabbitAdminService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import java.net.URI;
-import java.security.Principal;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,8 +49,8 @@ public class RabbitAdminController {
     }
 
     @PostMapping("/queues")
-    public ResponseEntity<ColaInfo> crearCola(@Valid @RequestBody CrearColaRequest req, Principal principal) {
-        ColaInfo cola = service.crearCola(req, principal.getName());
+    public ResponseEntity<ColaInfo> crearCola(@Valid @RequestBody CrearColaRequest req, JwtAuthenticationToken auth) {
+        ColaInfo cola = service.crearCola(req, usuario(auth));
         return ResponseEntity.created(URI.create("/api/admin/queues/" + cola.nombre())).body(cola);
     }
 
@@ -58,8 +58,8 @@ public class RabbitAdminController {
     public ResponseEntity<Void> eliminarCola(
             @PathVariable @Pattern(regexp = NombreRecurso.REGEX, message = NombreRecurso.MENSAJE) String nombre,
             @RequestParam(defaultValue = "false") boolean forzar,
-            Principal principal) {
-        service.eliminarCola(nombre, forzar, principal.getName());
+            JwtAuthenticationToken auth) {
+        service.eliminarCola(nombre, forzar, usuario(auth));
         return ResponseEntity.noContent().build();
     }
 
@@ -69,16 +69,16 @@ public class RabbitAdminController {
     }
 
     @PostMapping("/exchanges")
-    public ResponseEntity<ExchangeInfo> crearExchange(@Valid @RequestBody CrearExchangeRequest req, Principal principal) {
-        ExchangeInfo exchange = service.crearExchange(req, principal.getName());
+    public ResponseEntity<ExchangeInfo> crearExchange(@Valid @RequestBody CrearExchangeRequest req, JwtAuthenticationToken auth) {
+        ExchangeInfo exchange = service.crearExchange(req, usuario(auth));
         return ResponseEntity.created(URI.create("/api/admin/exchanges/" + exchange.nombre())).body(exchange);
     }
 
     @DeleteMapping("/exchanges/{nombre}")
     public ResponseEntity<Void> eliminarExchange(
             @PathVariable @Pattern(regexp = NombreRecurso.REGEX, message = NombreRecurso.MENSAJE) String nombre,
-            Principal principal) {
-        service.eliminarExchange(nombre, principal.getName());
+            JwtAuthenticationToken auth) {
+        service.eliminarExchange(nombre, usuario(auth));
         return ResponseEntity.noContent().build();
     }
 
@@ -88,14 +88,20 @@ public class RabbitAdminController {
     }
 
     @PostMapping("/bindings")
-    public ResponseEntity<BindingInfo> crearBinding(@Valid @RequestBody BindingRequest req, Principal principal) {
-        return ResponseEntity.status(201).body(service.crearBinding(req, principal.getName()));
+    public ResponseEntity<BindingInfo> crearBinding(@Valid @RequestBody BindingRequest req, JwtAuthenticationToken auth) {
+        return ResponseEntity.status(201).body(service.crearBinding(req, usuario(auth)));
     }
 
     /** El binding se identifica por sus tres partes, enviadas en el cuerpo. */
     @DeleteMapping("/bindings")
-    public ResponseEntity<Void> eliminarBinding(@Valid @RequestBody BindingRequest req, Principal principal) {
-        service.eliminarBinding(req, principal.getName());
+    public ResponseEntity<Void> eliminarBinding(@Valid @RequestBody BindingRequest req, JwtAuthenticationToken auth) {
+        service.eliminarBinding(req, usuario(auth));
         return ResponseEntity.noContent().build();
+    }
+
+    /** Usuario legible para el log de auditoría: correo (preferred_username) o, si falta, el subject. */
+    private static String usuario(JwtAuthenticationToken auth) {
+        String correo = auth.getToken().getClaimAsString("preferred_username");
+        return correo != null ? correo : auth.getName();
     }
 }
