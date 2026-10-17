@@ -1,0 +1,24 @@
+server:
+  port: ${PORT:8084}
+
+spring:
+  application:
+    name: ms-rabbit-admin
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:ecopunto}
+    password: ${RABBITMQ_PASSWORD:ecopunto}
+
+app:
+  security:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+ecopunto:
+  admin:
+    # API HTTP de RabbitMQ Management, usada solo para listar recursos.
+    management-url: ${RABBITMQ_MANAGEMENT_URL:http://localhost:15672}
+    # Exchange al que se envían los mensajes fallidos de las colas creadas "con DLQ".
+    dead-letter-exchange: ecopunto.dlx
