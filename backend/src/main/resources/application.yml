@@ -29,3 +29,28 @@ spring:
   h2:
     console:
       enabled: true
+
+  # RabbitMQ: en el clúster se listan ambos nodos; el cliente se conecta al
+  # primero disponible y se reconecta al otro si uno cae.
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:ecopunto}
+    password: ${RABBITMQ_PASSWORD:ecopunto}
+    # Publisher confirms y returns: el broker confirma cada publicación y
+    # devuelve los mensajes que no pudo enrutar a ninguna cola.
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+
+# Nombres de la topología de mensajería, centralizados en un solo lugar.
+ecopunto:
+  messaging:
+    exchanges:
+      eventos: ecopunto.events
+      tareas: ecopunto.tareas
+    routing-keys:
+      reporte-creado: reporte.creado
+      reporte-en-revision: reporte.en_revision
+      reporte-resuelto: reporte.resuelto
+      ticket-mantencion: ticket.mantencion

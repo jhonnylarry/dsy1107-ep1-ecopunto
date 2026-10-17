@@ -45,6 +45,8 @@ public class SecurityConfig {
                             .hasAuthority("SCOPE_reportes.read")
                         .requestMatchers(HttpMethod.POST, "/api/puntos-limpios/*/reportes")
                             .hasAuthority("SCOPE_reportes.write")
+                        .requestMatchers(HttpMethod.PATCH, "/api/reportes/*/estado")
+                            .hasAuthority("ROLE_ENCARGADO")
                         .requestMatchers(HttpMethod.POST, "/api/puntos-limpios")
                             .hasAuthority("ROLE_ENCARGADO")
                         .requestMatchers(HttpMethod.PUT, "/api/puntos-limpios/*")
