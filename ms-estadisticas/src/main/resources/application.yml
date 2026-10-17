@@ -1,0 +1,44 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  application:
+    name: ms-estadisticas
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:estadisticas}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:ecopunto}
+    password: ${RABBITMQ_PASSWORD:ecopunto}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        default-requeue-rejected: false
+
+app:
+  security:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+# Topología de mensajería de este consumidor, centralizada.
+ecopunto:
+  messaging:
+    exchanges:
+      eventos: ecopunto.events
+      dead-letter: ecopunto.dlx
+    cola: estadisticas.reportes
+    cola-dlq: estadisticas.reportes.dlq
+    # Patrón topic: cualquier evento de reporte (creado, en_revision, resuelto, y futuros).
+    binding-key: reporte.*
+    reintentos:
+      max-intentos: 3
+      espera-inicial: 1s
