@@ -1,0 +1,44 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: ms-tickets
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:tickets}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:ecopunto}
+    password: ${RABBITMQ_PASSWORD:ecopunto}
+    listener:
+      simple:
+        # ACK explícito desde el código: el mensaje se confirma solo después de guardar el ticket.
+        acknowledge-mode: manual
+        prefetch: 10
+        default-requeue-rejected: false
+
+app:
+  security:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+# Topología de mensajería de este consumidor, centralizada.
+ecopunto:
+  messaging:
+    exchanges:
+      tareas: ecopunto.tareas
+      dead-letter: ecopunto.dlx
+    cola: tickets.mantencion
+    cola-dlq: tickets.mantencion.dlq
+    routing-key: ticket.mantencion
+    reintentos:
+      max-intentos: 3
+      espera-inicial: 1s
