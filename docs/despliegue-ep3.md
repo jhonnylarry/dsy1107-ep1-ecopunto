@@ -1,5 +1,17 @@
 # Despliegue EP3/EP4 en AWS + Entra ID
 
+## Despliegue actual
+
+| Recurso | Valor |
+|---|---|
+| Frontend | https://ecopunto.larraguibel.dev → EC2 `ecopunto-frontend` (`t3.micro`), Elastic IP `34.207.44.149` |
+| API Gateway (HTTP API `ecopunto-api`) | https://mld2c6mojh.execute-api.us-east-1.amazonaws.com |
+| Backend stack | `ecopunto-api.larraguibel.dev` → EC2 `ecopunto-backend` (`t3.medium`, 30 GB), Elastic IP `34.203.5.9` |
+| RabbitMQ Management UI | http://ecopunto-api.larraguibel.dev:15672 (nodo 1) · :15673 (nodo 2) · usuario `ecopunto`, contraseña en el `.env` de la instancia |
+| Security Groups | `ecopunto-backend-sg`, `ecopunto-frontend-sg` |
+
+Las dos instancias usan **Elastic IP**: la IP no cambia al reiniciar el laboratorio de AWS Academy, por lo que los registros `A` de Cloudflare se configuran una sola vez y el DNS dinámico (`deploy/ddns/`) queda como alternativa para quien prefiera IPs automáticas. Costo: USD 0,005/h por IP, también con el laboratorio apagado; liberarlas al terminar el semestre (`aws ec2 release-address`).
+
 Cambios respecto al despliegue de EP2 (ver README): el backend ya no corre solo, sino como parte de un stack `docker-compose` con PostgreSQL, el clúster RabbitMQ de 2 nodos y cuatro microservicios.
 
 ## 1. Topología en la nube
@@ -22,9 +34,9 @@ EC2 backend: docker compose → postgres, rabbit1, rabbit2, backend, ms-notifica
 
   | Puerto | Origen | Uso |
   |---|---|---|
-  | 22 | mi IP | SSH |
+  | 22 | 0.0.0.0/0 | SSH (solo con la llave `vockey`) |
   | 8080, 8082, 8083, 8084 | 0.0.0.0/0 | Integraciones del API Gateway |
-  | 15672, 15673 | mi IP | Management UI de cada nodo (demo) |
+  | 15672, 15673 | 0.0.0.0/0 | Management UI de cada nodo (demo; laboratorio, IP de origen variable por VPN) |
 
   PostgreSQL (5432) y AMQP (5672/5673) **no** se abren: solo se usan dentro de la red de Docker.
 
@@ -37,6 +49,11 @@ sudo mkdir -p /usr/local/lib/docker/cli-plugins
 sudo curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+# buildx: el Docker de Amazon Linux no lo trae y `docker compose build` lo exige
+V=$(curl -sSL https://api.github.com/repos/docker/buildx/releases/latest | grep -m1 '"tag_name"' | cut -d'"' -f4)
+sudo curl -sSL "https://github.com/docker/buildx/releases/download/$V/buildx-$V.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 
 # Código y configuración
 git clone https://github.com/jhonnylarry/dsy1107-ep1-ecopunto.git && cd dsy1107-ep1-ecopunto
@@ -95,4 +112,26 @@ curl -i $API/public/puntos-limpios                                  # 200
 curl -i $API/api/estadisticas                                       # 401 (sin token, lo corta el Gateway)
 curl -i -H "Authorization: Bearer $TOKEN" $API/api/estadisticas     # 200
 curl -i -H "Authorization: Bearer $TOKEN_VECINO" $API/api/tickets   # 403 (falta ENCARGADO)
+```
+
+## 6. Frontend (EC2 `t3.micro`)
+
+```bash
+# swap de 2 GB: con 1 GB de RAM el build de Angular puede quedarse sin memoria
+sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+
+git clone https://github.com/jhonnylarry/dsy1107-ep1-ecopunto.git && cd dsy1107-ep1-ecopunto/frontend
+# environment.ts (no versionado): copia de environment.example.ts con production: true
+# y apiBaseUrl = URL del API Gateway
+docker build -t ecopunto-frontend .
+
+# certificado (con el registro A ya apuntando a la Elastic IP)
+sudo docker run --rm -p 80:80 -v /etc/letsencrypt:/etc/letsencrypt certbot/certbot certonly \
+  --standalone -d ecopunto.larraguibel.dev --non-interactive --agree-tos --register-unsafely-without-email
+mkdir -p ~/certs && sudo cp -L /etc/letsencrypt/live/ecopunto.larraguibel.dev/{fullchain,privkey}.pem ~/certs/
+sudo chown ec2-user ~/certs/*.pem
+
+docker run -d --name ecopunto-frontend --restart unless-stopped -p 80:80 -p 443:443 \
+  -v ~/certs:/etc/nginx/certs:ro ecopunto-frontend
 ```

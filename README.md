@@ -16,8 +16,8 @@ Sistema para consultar puntos limpios de reciclaje y reportar si un material ya 
 | Componente | URL |
 |---|---|
 | Frontend (Angular + MSAL) | https://ecopunto.larraguibel.dev |
-| API (AWS API Gateway, HTTP API) | https://gmm4008ljj.execute-api.us-east-1.amazonaws.com |
-| Ruta pública de ejemplo | https://gmm4008ljj.execute-api.us-east-1.amazonaws.com/public/puntos-limpios |
+| API (AWS API Gateway, HTTP API) | https://mld2c6mojh.execute-api.us-east-1.amazonaws.com |
+| Ruta pública de ejemplo | https://mld2c6mojh.execute-api.us-east-1.amazonaws.com/public/puntos-limpios |
 
 El backend no se expone directamente: se accede a través del API Gateway. Las instancias
 corren en un laboratorio de AWS Academy, así que solo están disponibles mientras el
