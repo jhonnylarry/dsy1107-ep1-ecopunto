@@ -1,7 +1,12 @@
-# EcoPunto · DSY1107 · Evaluaciones Parciales 1 y 2
+# EcoPunto · DSY1107 · Evaluaciones Parciales 1 a 4
 
-**Asignatura:** DSY1107 · Desarrollo Cloud Native I · Sección 002D
-**Estudiante:** Jonathan Larraguibel 
+**Asignatura:** DSY1107 · Desarrollo Cloud Native I · Sección 002D  
+**Estudiante:** Jonathan Larraguibel
+
+> **EP3 / EP4 · Mensajería asíncrona con RabbitMQ:** el backend publica eventos y tareas que
+> procesan cuatro microservicios nuevos (notificaciones, estadísticas, tickets y administrador de
+> RabbitMQ) sobre un clúster de 2 nodos. Documentación completa en
+> [`docs/mensajeria.md`](docs/mensajeria.md).
 
 Sistema para consultar puntos limpios de reciclaje y reportar si un material ya no se puede depositar en un punto específico.
 
@@ -47,6 +52,8 @@ flowchart LR
 | Tenant / App Registration en Entra ID | ✅ Configurado, login end-to-end verificado |
 | Despliegue en EC2 (Docker) con dominio y HTTPS | ✅ Funcionando |
 | AWS API Gateway (HTTP API) delante del backend | ✅ Funcionando, con CORS configurado |
+| Mensajería RabbitMQ (EP3): productor + 4 microservicios, ACK manual, DLQ | ✅ Funcionando en local con docker-compose |
+| Clúster RabbitMQ de 2 nodos, colas quorum, exchanges direct y topic | ✅ Funcionando en local con docker-compose |
 
 ## Entidades del dominio
 
@@ -62,6 +69,10 @@ PUT    /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
 DELETE /api/puntos-limpios/{id}          → protegido, ROLE_ENCARGADO
 GET    /api/puntos-limpios/{id}/reportes → protegido, scope reportes.read
 POST   /api/puntos-limpios/{id}/reportes → protegido, scope reportes.write
+PATCH  /api/reportes/{id}/estado         → protegido, ROLE_ENCARGADO (publica eventos en RabbitMQ)
+GET    /api/estadisticas                 → ms-estadisticas, autenticado
+GET    /api/tickets                      → ms-tickets, ROLE_ENCARGADO
+*      /api/admin/{queues|exchanges|bindings} → ms-rabbit-admin, ROLE_ADMIN
 ```
 
 ## Estructura
@@ -69,8 +80,16 @@ POST   /api/puntos-limpios/{id}/reportes → protegido, scope reportes.write
 ```text
 dsy1107-ep1-ecopunto/
 ├── README.md
-├── frontend/    ← Angular 22 + @azure/msal-angular
-└── backend/     ← Spring Boot 4 · Java 21 · Resource Server OAuth2/JWT
+├── docker-compose.yml   ← PostgreSQL + clúster RabbitMQ (2 nodos) + backend + 4 microservicios
+├── .env.example         ← variables y secretos (copiar a .env)
+├── infra/               ← configuración de RabbitMQ (clúster) y PostgreSQL (bases por servicio)
+├── docs/mensajeria.md   ← diseño e implementación de la mensajería (EP3/EP4)
+├── frontend/            ← Angular 22 + @azure/msal-angular
+├── backend/             ← Spring Boot 4 · Java 21 · Resource Server OAuth2/JWT · PRODUCTOR
+├── ms-notificaciones/   ← consumidor: avisos de reportes creados y resueltos
+├── ms-estadisticas/     ← consumidor: contadores por estado, comuna y punto
+├── ms-tickets/          ← consumidor: tickets de mantención
+└── ms-rabbit-admin/     ← API REST para administrar colas, exchanges y bindings
 ```
 
 ## Cómo ejecutar el frontend
