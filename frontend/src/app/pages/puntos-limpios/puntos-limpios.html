@@ -81,11 +81,17 @@
               <span class="material-chip">{{ material.trim() }}</span>
             }
           </div>
-          @if (esEncargado()) {
-            <div class="card-actions">
+          <div class="card-actions">
+            <button type="button" class="secondary" (click)="alternarReportes(punto.id)">
+              {{ reportesAbiertos() === punto.id ? 'Ocultar reportes' : 'Ver y crear reportes' }}
+            </button>
+            @if (esEncargado()) {
               <button type="button" class="secondary" (click)="empezarEdicion(punto)">Editar</button>
               <button type="button" class="danger" (click)="eliminarPunto(punto)">Eliminar</button>
-            </div>
+            }
+          </div>
+          @if (reportesAbiertos() === punto.id) {
+            <app-reportes-punto [puntoId]="punto.id" [esEncargado]="esEncargado()" />
           }
         }
       </li>

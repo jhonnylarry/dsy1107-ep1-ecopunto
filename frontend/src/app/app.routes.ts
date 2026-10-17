@@ -12,4 +12,14 @@ export const routes: Routes = [
       import('./pages/puntos-limpios/puntos-limpios').then((m) => m.PuntosLimpios),
     canActivate: [authGuard],
   },
+  {
+    path: 'estadisticas',
+    loadComponent: () => import('./pages/estadisticas/estadisticas').then((m) => m.Estadisticas),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tickets',
+    loadComponent: () => import('./pages/tickets/tickets').then((m) => m.Tickets),
+    canActivate: [authGuard],
+  },
 ];

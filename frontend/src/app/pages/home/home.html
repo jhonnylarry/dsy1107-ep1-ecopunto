@@ -11,6 +11,10 @@
       <p class="session-user">{{ auth.getAccount()?.username }}</p>
       <div class="actions">
         <a routerLink="/puntos-limpios"><button type="button">Ir a puntos limpios</button></a>
+        <a routerLink="/estadisticas"><button type="button" class="secondary">Estadísticas</button></a>
+        @if (esEncargado()) {
+          <a routerLink="/tickets"><button type="button" class="secondary">Tickets de mantención</button></a>
+        }
         <button type="button" class="secondary" (click)="auth.logout()">Cerrar sesión</button>
       </div>
     } @else {

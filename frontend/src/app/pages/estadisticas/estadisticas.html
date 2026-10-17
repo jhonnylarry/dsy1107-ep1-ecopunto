@@ -1,0 +1,51 @@
+<main class="container">
+  <a routerLink="/" class="back-link">← Volver</a>
+  <div class="page-header">
+    <div>
+      <h1>Estadísticas de reportes</h1>
+      <p class="subtitulo">Se actualizan de forma asíncrona a partir de los eventos de reportes.</p>
+    </div>
+    <button type="button" class="secondary" (click)="cargar()">Actualizar</button>
+  </div>
+
+  @if (error()) {
+    <p class="alerta-error">{{ error() }}</p>
+  }
+
+  @if (datos(); as d) {
+    <section class="kpis">
+      <div class="panel kpi"><span class="valor">{{ d.reportesCreados }}</span><span class="etiqueta">Reportes creados</span></div>
+      <div class="panel kpi"><span class="valor">{{ d.pasadosARevision }}</span><span class="etiqueta">Pasados a revisión</span></div>
+      <div class="panel kpi"><span class="valor">{{ d.resueltos }}</span><span class="etiqueta">Resueltos</span></div>
+    </section>
+
+    <section class="panel">
+      <h2>Reportes por comuna</h2>
+      @for (item of d.reportesPorComuna | keyvalue: porValorDesc; track item.key) {
+        <div class="barra-fila">
+          <span class="barra-nombre">{{ item.key }}</span>
+          <span class="barra"><span class="relleno" [style.width]="ancho(item.value)"></span></span>
+          <span class="barra-valor">{{ item.value }}</span>
+        </div>
+      } @empty {
+        <p class="vacio">Aún no hay reportes.</p>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Reportes por punto limpio</h2>
+      <table class="tabla">
+        <thead><tr><th>Punto limpio</th><th>Reportes</th></tr></thead>
+        <tbody>
+          @for (item of d.reportesPorPunto | keyvalue: porValorDesc; track item.key) {
+            <tr><td>{{ item.key }}</td><td>{{ item.value }}</td></tr>
+          } @empty {
+            <tr><td colspan="2" class="vacio">Aún no hay reportes.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  } @else if (!error()) {
+    <p class="vacio">Cargando estadísticas…</p>
+  }
+</main>

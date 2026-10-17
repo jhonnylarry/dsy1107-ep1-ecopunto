@@ -1,0 +1,35 @@
+<section class="reportes">
+  @if (aviso()) {
+    <p class="alerta-info">{{ aviso() }}</p>
+  }
+  @if (error()) {
+    <p class="alerta-error">{{ error() }}</p>
+  }
+
+  <form class="nuevo-reporte" (ngSubmit)="crear()" #reporteForm="ngForm">
+    <input name="descripcion" [(ngModel)]="descripcion" required maxlength="500"
+           placeholder="¿Qué problema encontraste? Ej.: el contenedor de vidrio está rebalsado" />
+    <button type="submit" [disabled]="reporteForm.invalid || !descripcion.trim()">Reportar</button>
+  </form>
+
+  @if (cargando()) {
+    <p class="vacio">Cargando reportes…</p>
+  } @else if (reportes().length === 0) {
+    <p class="vacio">Este punto no tiene reportes.</p>
+  } @else {
+    <ul class="lista">
+      @for (reporte of reportes(); track reporte.id) {
+        <li>
+          <div class="fila">
+            <span class="badge {{ reporte.estado.toLowerCase() }}">{{ etiquetaEstado(reporte.estado) }}</span>
+            <span class="meta">#{{ reporte.id }} · {{ reporte.creadoEn | date: 'dd-MM-yyyy HH:mm' }} · {{ reporte.autorEmail }}</span>
+          </div>
+          <p class="texto">{{ reporte.descripcion }}</p>
+          @if (esEncargado() && siguiente(reporte); as paso) {
+            <button type="button" class="secondary accion" (click)="avanzar(reporte)">{{ paso.etiqueta }}</button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

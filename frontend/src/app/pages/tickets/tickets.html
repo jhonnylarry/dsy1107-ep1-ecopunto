@@ -1,0 +1,37 @@
+<main class="container">
+  <a routerLink="/" class="back-link">← Volver</a>
+  <div class="page-header">
+    <div>
+      <h1>Tickets de mantención</h1>
+      <p class="subtitulo">Se generan automáticamente cuando un reporte pasa a revisión.</p>
+    </div>
+    <button type="button" class="secondary" (click)="cargar()">Actualizar</button>
+  </div>
+
+  @if (error()) {
+    <p class="alerta-error">{{ error() }}</p>
+  } @else if (tickets(); as lista) {
+    <section class="panel">
+      <table class="tabla">
+        <thead>
+          <tr><th>Ticket</th><th>Punto limpio</th><th>Problema</th><th>Prioridad</th><th>Creado</th></tr>
+        </thead>
+        <tbody>
+          @for (t of lista; track t.id) {
+            <tr>
+              <td><strong>{{ t.codigo }}</strong><br /><small class="vacio">Reporte #{{ t.reporteId }}</small></td>
+              <td>{{ t.puntoNombre }}<br /><small class="vacio">{{ t.direccion }}, {{ t.comuna }}</small></td>
+              <td>{{ t.descripcion }}</td>
+              <td><span class="badge {{ t.prioridad.toLowerCase() }}">{{ t.prioridad }}</span></td>
+              <td>{{ t.creadoEn | date: 'dd-MM-yyyy HH:mm' }}<br /><small class="vacio">{{ t.solicitadoPor }}</small></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="vacio">No hay tickets todavía.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  } @else {
+    <p class="vacio">Cargando tickets…</p>
+  }
+</main>

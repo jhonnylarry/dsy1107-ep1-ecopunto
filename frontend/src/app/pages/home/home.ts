@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 
@@ -9,6 +9,14 @@ import { AuthService } from '../../auth/auth.service';
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
-export class Home {
+export class Home implements OnInit {
+  protected readonly esEncargado = signal(false);
+
   constructor(public readonly auth: AuthService) {}
+
+  ngOnInit(): void {
+    if (this.auth.isAuthenticated()) {
+      this.auth.getRoles().then((roles) => this.esEncargado.set(roles.includes('ENCARGADO')));
+    }
+  }
 }
