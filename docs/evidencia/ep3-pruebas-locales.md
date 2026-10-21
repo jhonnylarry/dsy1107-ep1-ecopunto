@@ -100,3 +100,4 @@ Capturas del Management UI en la EC2 `ecopunto-backend` (2026-10-21), con la mis
 | [Exchanges](./capturas/ep3/aws-rabbit-exchanges.png) | `ecopunto.events` (topic), `ecopunto.tareas` y `ecopunto.dlx` (direct) |
 | [Bindings topic](./capturas/ep3/aws-rabbit-exchange-topic-bindings.png) | `reporte.creado`, `reporte.resuelto` y `reporte.*` |
 | [Bindings direct](./capturas/ep3/aws-rabbit-exchange-direct-bindings.png) | `ticket.mantencion` → `tickets.mantencion` |
+| [Mensaje en la DLQ](./capturas/ep3/aws-rabbit-dlq-mensaje.png) | Mensaje con JSON inválido publicado en `ecopunto.tareas`: ms-tickets lo rechaza (`[DLQ] motivo=NO_RECUPERABLE`) y queda en `tickets.mantencion.dlq` con su header `x-death` |
