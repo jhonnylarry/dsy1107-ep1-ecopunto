@@ -88,3 +88,15 @@ Pruebas del sistema completo con mensajería: las funciones de la EP1/EP2 (segur
 | [Bindings topic](./capturas/ep3/local-rabbit-exchange-topic-bindings.png) | `reporte.creado`, `reporte.resuelto` y `reporte.*` |
 | [Bindings direct](./capturas/ep3/local-rabbit-exchange-direct-bindings.png) | `ticket.mantencion` → `tickets.mantencion` |
 | [Mensaje en la DLQ](./capturas/ep3/local-rabbit-dlq-mensaje.png) | El mensaje inválido con su header `x-death` |
+
+## 4. El mismo clúster en AWS
+
+Capturas del Management UI en la EC2 `ecopunto-backend` (2026-10-21), con la misma topología que en local:
+
+| Captura | Muestra |
+|---|---|
+| [Nodos](./capturas/ep3/aws-rabbit-overview-nodos.png) | `rabbit@rabbit1` y `rabbit@rabbit2` en ejecución; 6 colas y 3 consumidores |
+| [Colas](./capturas/ep3/aws-rabbit-colas-dlq.png) | Las 6 colas quorum con `DLX` y `DLK`, con líderes repartidos entre los dos nodos |
+| [Exchanges](./capturas/ep3/aws-rabbit-exchanges.png) | `ecopunto.events` (topic), `ecopunto.tareas` y `ecopunto.dlx` (direct) |
+| [Bindings topic](./capturas/ep3/aws-rabbit-exchange-topic-bindings.png) | `reporte.creado`, `reporte.resuelto` y `reporte.*` |
+| [Bindings direct](./capturas/ep3/aws-rabbit-exchange-direct-bindings.png) | `ticket.mantencion` → `tickets.mantencion` |
