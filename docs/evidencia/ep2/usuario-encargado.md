@@ -39,7 +39,7 @@ demuestra que `PUT` también lee y modifica un recurso real, no solo el de prueb
 
 ## 5 · Matriz completa por consola (`probar-matriz.js`)
 
-Mismo script que en la evidencia técnica de [`ep2-matriz-seguridad.md`](./ep2-matriz-seguridad.md),
+Mismo script que en la evidencia técnica de [`matriz-seguridad.md`](./matriz-seguridad.md),
 corrido con la sesión de `encargado1`. El script detecta `Roles: ["ENCARGADO"]` y, en vez
 de esperar `403` en las operaciones de escritura, las ejecuta de verdad: crea un punto,
 lo edita, lo elimina, y confirma `404` al intentar eliminar un id inexistente. Es

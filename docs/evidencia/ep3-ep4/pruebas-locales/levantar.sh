@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Levanta el stack completo en local con un emisor de JWT de PRUEBA (no usa Entra ID).
-# Uso: docs/evidencia/pruebas-locales/levantar.sh   y luego   docs/evidencia/pruebas-locales/pruebas.sh
+# Uso: docs/evidencia/ep3-ep4/pruebas-locales/levantar.sh   y luego   docs/evidencia/ep3-ep4/pruebas-locales/pruebas.sh
 set -e
-J="$(cd "$(dirname "$0")" && pwd)"; RAIZ="$(cd "$J/../../.." && pwd)"
+J="$(cd "$(dirname "$0")" && pwd)"; RAIZ="$(cd "$J/../../../.." && pwd)"
 [ -f "$J/key.pem" ] || openssl genrsa -out "$J/key.pem" 2048 2>/dev/null
 python3 "$J/mint.py" --jwks
 cat > "$J/local.env" <<'ENV'

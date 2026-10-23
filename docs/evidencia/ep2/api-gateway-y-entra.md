@@ -3,7 +3,7 @@
 Capturas de la configuración real en las dos consolas cloud, tal como la pide la pauta
 oficial de EP2: creación del API Manager, rutas, JWT authorizer, CORS, tenant y App
 Registration. No incluye secretos: Client ID y Tenant ID de Entra no son secretos por sí
-solos (ver nota en el [README](../../README.md)), y el ID de cuenta de AWS corresponde al
+solos (ver nota en el [README](../../../README.md)), y el ID de cuenta de AWS corresponde al
 laboratorio efímero de AWS Academy (`voclabs/...`), no a una cuenta productiva.
 
 ## AWS API Gateway (`ecopunto-api`, HTTP API)
@@ -75,7 +75,7 @@ proyecto.
 |---|---|
 | Instancia de API Manager en funcionamiento | Rutas completas |
 | Configuración del API Manager que permite llamar a los endpoints | Integraciones |
-| API Manager valida JWT, rechaza inválidas y acepta correctas | Autorización JWT + la matriz de [`ep2-matriz-seguridad.md`](./ep2-matriz-seguridad.md) |
+| API Manager valida JWT, rechaza inválidas y acepta correctas | Autorización JWT + la matriz de [`matriz-seguridad.md`](./matriz-seguridad.md) |
 | CORS configurado para el frontend | CORS |
 | Tenant en IDaaS con usuarios registrados | Permisos de API + [`usuario-sin-rol.md`](./usuario-sin-rol.md) / [`usuario-encargado.md`](./usuario-encargado.md) |
 | Aplicación registrada en el tenant | App Registration overview + App Role |

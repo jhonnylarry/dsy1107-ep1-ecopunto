@@ -2,7 +2,7 @@
 
 Evidencia visual del flujo de autoservicio (crear cuenta → iniciar sesión) y de cómo se
 comporta la aplicación para un usuario autenticado que **no** tiene el rol `ENCARGADO`
-asignado. Complementa la matriz técnica de [`ep2-matriz-seguridad.md`](./ep2-matriz-seguridad.md),
+asignado. Complementa la matriz técnica de [`matriz-seguridad.md`](./matriz-seguridad.md),
 que prueba lo mismo a nivel de API (401/403); acá se muestra el mismo caso desde la UI.
 
 ## Usuario de la evidencia
@@ -43,6 +43,6 @@ el claim `roles` del token no incluye `ENCARGADO`.
 ![Listado de puntos limpios sin botones de crear/editar/eliminar](./capturas/puntos-limpios-sin-botones-crud.webp)
 
 > Ocultar los botones es solo una ayuda de UX, no la protección real: la matriz en
-> [`ep2-matriz-seguridad.md`](./ep2-matriz-seguridad.md) prueba que este mismo usuario
+> [`matriz-seguridad.md`](./matriz-seguridad.md) prueba que este mismo usuario
 > recibe **403** del backend si intenta `POST`/`PUT`/`DELETE` llamando directo a la API
 > desde la consola, aunque los botones estuvieran visibles.
