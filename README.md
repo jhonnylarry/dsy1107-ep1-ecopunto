@@ -72,8 +72,8 @@ Todo lo que está detrás del Gateway corre en la EC2 del backend con un único
 | Tenant / App Registration en Entra ID (roles `ENCARGADO` y `ADMIN`) | ✅ Configurado, login end-to-end verificado |
 | AWS API Gateway (HTTP API, 12 rutas con JWT authorizer) | ✅ Funcionando, con CORS configurado |
 | Mensajería RabbitMQ (EP3): productor + 4 microservicios, ACK manual, reintentos, DLQ, idempotencia | ✅ Desplegado en AWS con docker-compose |
-| Clúster RabbitMQ de 2 nodos, colas quorum, exchanges direct y topic | ✅ Desplegado en AWS ([capturas](docs/evidencia/ep3-pruebas-locales.md#4-el-mismo-clúster-en-aws)) |
-| Pruebas de punta a punta del stack completo | ✅ 38 de 38 ([evidencia](docs/evidencia/ep3-pruebas-locales.md)) |
+| Clúster RabbitMQ de 2 nodos, colas quorum, exchanges direct y topic | ✅ Desplegado en AWS ([capturas](docs/evidencia/ep3-ep4/cluster-rabbitmq-aws.md)) |
+| Pruebas de punta a punta del stack completo | ✅ 38 de 38 en local ([matriz](docs/evidencia/ep3-ep4/pruebas-locales.md)) y flujo con login real en producción ([evidencia](docs/evidencia/ep3-ep4/flujo-encargado.md)) |
 
 ## Entidades del dominio
 
@@ -109,7 +109,7 @@ dsy1107-ep1-ecopunto/
 │   ├── despliegue-ep3.md    ← despliegue en AWS del stack completo
 │   ├── guion-demo-ep4.md    ← guion de la demo EP4
 │   ├── presentacion/        ← presentaciones EP2 y EP4
-│   └── evidencia/           ← matrices de prueba, capturas y scripts para repetirlas
+│   └── evidencia/           ← evidencia por evaluación: ep2/ (presentación anterior) y ep3-ep4/ (actual)
 ├── frontend/            ← Angular 22 + @azure/msal-angular
 ├── backend/             ← Spring Boot 4 · Java 21 · Resource Server OAuth2/JWT · PRODUCTOR
 ├── ms-notificaciones/   ← consumidor: avisos de reportes creados y resueltos
@@ -126,8 +126,8 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Para probarlo en local sin cuentas de Entra ID, [`docs/evidencia/pruebas-locales/levantar.sh`](docs/evidencia/pruebas-locales/levantar.sh)
-levanta el mismo stack con un emisor de JWT de prueba y [`pruebas.sh`](docs/evidencia/pruebas-locales/pruebas.sh)
+Para probarlo en local sin cuentas de Entra ID, [`docs/evidencia/ep3-ep4/pruebas-locales/levantar.sh`](docs/evidencia/ep3-ep4/pruebas-locales/levantar.sh)
+levanta el mismo stack con un emisor de JWT de prueba y [`pruebas.sh`](docs/evidencia/ep3-ep4/pruebas-locales/pruebas.sh)
 ejecuta las 38 pruebas. Para que la demo no parta vacía, [`deploy/datos-sinteticos.py`](deploy/datos-sinteticos.py)
 carga puntos limpios y reportes de ejemplo y publica sus eventos en RabbitMQ, así los
 consumidores generan tickets, notificaciones y estadísticas por el flujo real.
@@ -199,18 +199,20 @@ usuarios:
 | Usuario `ENCARGADO`: `POST` / `PUT` / `DELETE` | 201 / 200 / 204 |
 | Usuario `ENCARGADO`: `DELETE` de un id inexistente | 404 |
 
-Detalle con los claims de cada token en [`docs/evidencia/ep2-matriz-seguridad.md`](docs/evidencia/ep2-matriz-seguridad.md);
-el script [`docs/evidencia/probar-matriz.js`](docs/evidencia/probar-matriz.js) permite repetir la prueba
+Detalle con los claims de cada token en [`docs/evidencia/ep2/matriz-seguridad.md`](docs/evidencia/ep2/matriz-seguridad.md);
+el script [`docs/evidencia/ep2/probar-matriz.js`](docs/evidencia/ep2/probar-matriz.js) permite repetir la prueba
 pegándolo en la consola del navegador con una sesión iniciada. Evidencia visual del
-comportamiento de la UI según el rol: [`docs/evidencia/usuario-sin-rol.md`](docs/evidencia/usuario-sin-rol.md)
-(registro de autoservicio, sin botones de edición) y [`docs/evidencia/usuario-encargado.md`](docs/evidencia/usuario-encargado.md)
+comportamiento de la UI según el rol: [`docs/evidencia/ep2/usuario-sin-rol.md`](docs/evidencia/ep2/usuario-sin-rol.md)
+(registro de autoservicio, sin botones de edición) y [`docs/evidencia/ep2/usuario-encargado.md`](docs/evidencia/ep2/usuario-encargado.md)
 (CRUD completo habilitado). Configuración en consola de AWS API Gateway y Microsoft
-Entra ID en [`docs/evidencia/api-gateway-y-entra.md`](docs/evidencia/api-gateway-y-entra.md).
+Entra ID en [`docs/evidencia/ep2/api-gateway-y-entra.md`](docs/evidencia/ep2/api-gateway-y-entra.md).
 
-**EP3/EP4:** la matriz se amplió a 38 pruebas que cubren además reportes, transiciones de
-estado, tickets, estadísticas y el administrador de RabbitMQ (rol `ADMIN`), junto con
-las pruebas de mensajería (DLQ con `x-death`, consumidor caído, clúster) y las capturas
-del Management UI en local y en AWS: [`docs/evidencia/ep3-pruebas-locales.md`](docs/evidencia/ep3-pruebas-locales.md).
+**EP3/EP4:** evidencia en [`docs/evidencia/ep3-ep4/`](docs/evidencia/ep3-ep4/), con el mismo formato que la de EP2:
+el recorrido en producción con login real ([`flujo-encargado.md`](docs/evidencia/ep3-ep4/flujo-encargado.md)), el
+administrador de RabbitMQ ([`administrador-rabbitmq.md`](docs/evidencia/ep3-ep4/administrador-rabbitmq.md)), el clúster en
+AWS ([`cluster-rabbitmq-aws.md`](docs/evidencia/ep3-ep4/cluster-rabbitmq-aws.md)), las rutas del API Gateway
+([`api-gateway.md`](docs/evidencia/ep3-ep4/api-gateway.md)) y la matriz de 38 pruebas en local
+([`pruebas-locales.md`](docs/evidencia/ep3-ep4/pruebas-locales.md)). Índice completo en [`docs/evidencia/`](docs/evidencia/).
 
 Nota sobre permisos: los scopes delegados (`reportes.read`/`reportes.write`) se
 rigen por **consentimiento** — el consentimiento de administrador otorgado una
