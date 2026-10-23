@@ -18,16 +18,23 @@ Sistema para consultar puntos limpios de reciclaje y reportar si un material ya 
 | Frontend (Angular + MSAL) | https://ecopunto.larraguibel.dev |
 | API (AWS API Gateway, HTTP API) | https://mld2c6mojh.execute-api.us-east-1.amazonaws.com |
 | Ruta pública de ejemplo | https://mld2c6mojh.execute-api.us-east-1.amazonaws.com/public/puntos-limpios |
+| RabbitMQ Management UI | http://ecopunto-api.larraguibel.dev:15672 (nodo 1) · :15673 (nodo 2) |
 
 El backend no se expone directamente: se accede a través del API Gateway. Las instancias
 corren en un laboratorio de AWS Academy, así que solo están disponibles mientras el
 laboratorio está encendido. La configuración del frontend para producción
 (`src/environments/environment.ts`, con `apiBaseUrl` apuntando al Gateway) no se versiona;
-el repositorio incluye la plantilla `environment.example.ts`.
+el repositorio incluye la plantilla `environment.example.ts`. Detalle del despliegue actual
+(Elastic IPs, Security Groups, rutas del Gateway): [`docs/despliegue-ep3.md`](docs/despliegue-ep3.md).
 
 ## Presentación
 
-[`docs/presentacion/EcoPunto-EP2.pptx`](docs/presentacion/EcoPunto-EP2.pptx) — presentación de la Evaluación Parcial 2.
+| Evaluación | Archivo |
+|---|---|
+| EP4 · Mensajería con RabbitMQ en la nube | [`docs/presentacion/EcoPunto-EP4.pptx`](docs/presentacion/EcoPunto-EP4.pptx) |
+| EP2 · Seguridad con Entra ID y API Gateway | [`docs/presentacion/EcoPunto-EP2.pptx`](docs/presentacion/EcoPunto-EP2.pptx) |
+
+El guion de la demo EP4 está en [`docs/guion-demo-ep4.md`](docs/guion-demo-ep4.md).
 
 ## Arquitectura
 
@@ -37,24 +44,36 @@ flowchart LR
     FE -->|"Authorization Code + PKCE"| ENTRA["Microsoft Entra ID"]
     ENTRA -->|"Access Token JWT"| FE
     FE -->|"Bearer token (HTTPS)"| GW["AWS API Gateway<br/>(HTTP API)"]
-    GW -->|"Integración HTTP"| BE["Spring Boot · Docker<br/>EC2 backend"]
+    GW -->|":8080"| BE["backend<br/>Spring Boot · productor"]
     BE -->|"valida token"| ENTRA
-    BE --> DB[("Base de datos")]
+    BE --> DB[("PostgreSQL<br/>una base por servicio")]
+    BE -->|"publica eventos y tareas"| MQ{{"Clúster RabbitMQ<br/>rabbit1 + rabbit2"}}
+    MQ --> NOTI["ms-notificaciones"]
+    MQ --> EST["ms-estadisticas :8082"]
+    MQ --> TIC["ms-tickets :8083"]
+    GW -->|"/api/estadisticas"| EST
+    GW -->|"/api/tickets"| TIC
+    GW -->|"/api/admin/*"| ADM["ms-rabbit-admin :8084"]
+    ADM -->|"Management API"| MQ
     DNS["Cloudflare DNS<br/>+ Let's Encrypt"] -.->|"nombre + certificado"| FE
     DNS -.->|"nombre"| BE
 ```
+
+Todo lo que está detrás del Gateway corre en la EC2 del backend con un único
+`docker-compose.yml`. Exchanges `ecopunto.events` (topic), `ecopunto.tareas` (direct) y
+`ecopunto.dlx`, con tres colas quorum y sus DLQ; detalle en [`docs/mensajeria.md`](docs/mensajeria.md).
 
 ## Estado
 
 | Componente | Estado |
 |---|---|
-| `frontend/` — Angular + MSAL (login, guard, interceptor, CRUD por rol) | ✅ Funcional, login real contra Entra ID probado |
-| `backend/` — Spring Boot Resource Server | ✅ CRUD completo, valida JWT real (issuer/audience/firma/rol) |
-| Tenant / App Registration en Entra ID | ✅ Configurado, login end-to-end verificado |
-| Despliegue en EC2 (Docker) con dominio y HTTPS | ✅ Funcionando |
-| AWS API Gateway (HTTP API) delante del backend | ✅ Funcionando, con CORS configurado |
-| Mensajería RabbitMQ (EP3): productor + 4 microservicios, ACK manual, DLQ | ✅ Funcionando en local con docker-compose |
-| Clúster RabbitMQ de 2 nodos, colas quorum, exchanges direct y topic | ✅ Funcionando en local con docker-compose |
+| `frontend/` — Angular + MSAL (login, guard, interceptor, CRUD por rol, reportes, tickets, estadísticas y administración de RabbitMQ) | ✅ Desplegado en AWS |
+| `backend/` — Spring Boot Resource Server y productor de eventos | ✅ Valida JWT real (issuer/audience/firma/rol), publica con confirmaciones |
+| Tenant / App Registration en Entra ID (roles `ENCARGADO` y `ADMIN`) | ✅ Configurado, login end-to-end verificado |
+| AWS API Gateway (HTTP API, 12 rutas con JWT authorizer) | ✅ Funcionando, con CORS configurado |
+| Mensajería RabbitMQ (EP3): productor + 4 microservicios, ACK manual, reintentos, DLQ, idempotencia | ✅ Desplegado en AWS con docker-compose |
+| Clúster RabbitMQ de 2 nodos, colas quorum, exchanges direct y topic | ✅ Desplegado en AWS ([capturas](docs/evidencia/ep3-pruebas-locales.md#4-el-mismo-clúster-en-aws)) |
+| Pruebas de punta a punta del stack completo | ✅ 38 de 38 ([evidencia](docs/evidencia/ep3-pruebas-locales.md)) |
 
 ## Entidades del dominio
 
@@ -84,7 +103,13 @@ dsy1107-ep1-ecopunto/
 ├── docker-compose.yml   ← PostgreSQL + clúster RabbitMQ (2 nodos) + backend + 4 microservicios
 ├── .env.example         ← variables y secretos (copiar a .env)
 ├── infra/               ← configuración de RabbitMQ (clúster) y PostgreSQL (bases por servicio)
-├── docs/mensajeria.md   ← diseño e implementación de la mensajería (EP3/EP4)
+├── deploy/              ← DNS dinámico (ddns/) y datos sintéticos para la demo
+├── docs/
+│   ├── mensajeria.md        ← diseño e implementación de la mensajería (EP3/EP4)
+│   ├── despliegue-ep3.md    ← despliegue en AWS del stack completo
+│   ├── guion-demo-ep4.md    ← guion de la demo EP4
+│   ├── presentacion/        ← presentaciones EP2 y EP4
+│   └── evidencia/           ← matrices de prueba, capturas y scripts para repetirlas
 ├── frontend/            ← Angular 22 + @azure/msal-angular
 ├── backend/             ← Spring Boot 4 · Java 21 · Resource Server OAuth2/JWT · PRODUCTOR
 ├── ms-notificaciones/   ← consumidor: avisos de reportes creados y resueltos
@@ -92,6 +117,20 @@ dsy1107-ep1-ecopunto/
 ├── ms-tickets/          ← consumidor: tickets de mantención
 └── ms-rabbit-admin/     ← API REST para administrar colas, exchanges y bindings
 ```
+
+## Cómo correr el stack completo (EP3/EP4)
+
+```bash
+cp .env.example .env      # contraseñas, cookie de RabbitMQ, tenant/clientId, dominio del frontend
+docker compose up -d --build
+docker compose ps
+```
+
+Para probarlo en local sin cuentas de Entra ID, [`docs/evidencia/pruebas-locales/levantar.sh`](docs/evidencia/pruebas-locales/levantar.sh)
+levanta el mismo stack con un emisor de JWT de prueba y [`pruebas.sh`](docs/evidencia/pruebas-locales/pruebas.sh)
+ejecuta las 38 pruebas. Para que la demo no parta vacía, [`deploy/datos-sinteticos.py`](deploy/datos-sinteticos.py)
+carga puntos limpios y reportes de ejemplo y publica sus eventos en RabbitMQ, así los
+consumidores generan tickets, notificaciones y estadísticas por el flujo real.
 
 ## Cómo ejecutar el frontend
 
@@ -111,11 +150,10 @@ cd backend
 ```
 
 Levanta en `http://localhost:8080` con base de datos H2 en memoria (se recrea y se
-siembra con datos de prueba en cada arranque). Mientras no exista el App
-Registration real en Entra ID, `issuer`/`audience`/`jwks-uri` quedan con valores
-por defecto que permiten que el backend arranque, pero ningún token real va a
-pasar la validación — solo sirve para probar las rutas públicas y el 401 en las
-protegidas. Una vez creado el tenant, sobrescribir con variables de entorno:
+siembra con datos de prueba en cada arranque). Sin variables de entorno,
+`issuer`/`audience`/`jwks-uri` quedan con valores por defecto que permiten que el
+backend arranque, pero ningún token real va a pasar la validación — solo sirve para
+probar las rutas públicas y el 401 en las protegidas. Para usar el tenant real:
 
 ```bash
 export JWT_ISSUER=https://login.microsoftonline.com/<tenantId>/v2.0
@@ -169,6 +207,11 @@ comportamiento de la UI según el rol: [`docs/evidencia/usuario-sin-rol.md`](doc
 (CRUD completo habilitado). Configuración en consola de AWS API Gateway y Microsoft
 Entra ID en [`docs/evidencia/api-gateway-y-entra.md`](docs/evidencia/api-gateway-y-entra.md).
 
+**EP3/EP4:** la matriz se amplió a 38 pruebas que cubren además reportes, transiciones de
+estado, tickets, estadísticas y el administrador de RabbitMQ (rol `ADMIN`), junto con
+las pruebas de mensajería (DLQ con `x-death`, consumidor caído, clúster) y las capturas
+del Management UI en local y en AWS: [`docs/evidencia/ep3-pruebas-locales.md`](docs/evidencia/ep3-pruebas-locales.md).
+
 Nota sobre permisos: los scopes delegados (`reportes.read`/`reportes.write`) se
 rigen por **consentimiento** — el consentimiento de administrador otorgado una
 vez en el App Registration aplica a todos los usuarios del tenant automáticamente.
@@ -206,6 +249,10 @@ defecto (ver sección anterior) — útil para probar el contenedor localmente a
 tener el tenant real.
 
 ## Despliegue en AWS (EP2)
+
+> Esta sección describe el despliegue de la EP2 (backend solo en un contenedor). Desde la
+> EP3 el backend corre en un stack `docker-compose` con PostgreSQL, el clúster RabbitMQ y
+> los microservicios, y el Gateway tiene rutas para cada uno: ver [`docs/despliegue-ep3.md`](docs/despliegue-ep3.md).
 
 ```text
 Navegador → https://<dominio-frontend>            (nginx en EC2, certificado Let's Encrypt)
@@ -313,7 +360,10 @@ de `http://localhost:4200` para el desarrollo local; si no, el login falla con
 
 ### Al reiniciar el laboratorio (AWS Academy)
 
-Las IPs públicas cambian al detener y volver a iniciar las instancias. Como todo lo demás
+> Desde la EP3 las dos instancias tienen **Elastic IP**, así que la IP ya no cambia y el
+> DNS dinámico queda como alternativa (ver [`docs/despliegue-ep3.md`](docs/despliegue-ep3.md)).
+
+Sin Elastic IP, las IPs públicas cambian al detener y volver a iniciar las instancias. Como todo lo demás
 usa nombres de dominio, lo único que depende de la IP son los dos registros `A` de
 Cloudflare, y **se actualizan solos**: cada instancia corre un servicio de DNS dinámico
 ([`deploy/ddns/`](deploy/ddns/)) que al arrancar, y cada 5 minutos, lee su IP pública y
