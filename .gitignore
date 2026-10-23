@@ -1,2 +1,5 @@
 # Secretos locales
 .env
+
+# Archivos temporales de Office (PowerPoint, Word)
+~$*
