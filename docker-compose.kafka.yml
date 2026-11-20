@@ -1,0 +1,196 @@
+# EcoPunto · arquitectura Kafka (EP5/EP6)
+#   - 3 controllers KRaft: quórum de metadatos y elección del controller activo
+#     (cumplen el rol que antes tenía ZooKeeper)
+#   - 3 brokers: guardan las particiones, cada una con líder y 2 réplicas
+#   - kafka-init: crea los topics con su configuración y termina
+#   - kafka-ui: administración visual del clúster (con login)
+#
+# Se combina con docker-compose.yml (misma red ecopunto-net):
+#   docker compose -f docker-compose.yml -f docker-compose.kafka.yml up -d
+# o con COMPOSE_FILE en .env (ver .env.example).
+
+x-kafka-common: &kafka-common
+  image: apache/kafka:4.1.2
+  networks: [ecopunto-net]
+  restart: unless-stopped
+
+x-kafka-env: &kafka-env
+  CLUSTER_ID: YA2N5lW0RnG1aMJJG1x2-Q
+  KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+  KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+  KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+x-controller-env: &controller-env
+  <<: *kafka-env
+  KAFKA_PROCESS_ROLES: controller
+  KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT
+  KAFKA_HEAP_OPTS: "-Xms192m -Xmx192m"
+
+x-broker-env: &broker-env
+  <<: *kafka-env
+  KAFKA_PROCESS_ROLES: broker
+  KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
+  KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+  # Valores por defecto del clúster: toda escritura con acks=all necesita 2 de 3 réplicas al día
+  KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+  KAFKA_MIN_INSYNC_REPLICAS: 2
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+  KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+  KAFKA_HEAP_OPTS: "-Xms384m -Xmx384m"
+
+x-controller-health: &controller-health
+  test: ["CMD-SHELL", "/opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-controller localhost:9093 describe --status >/dev/null 2>&1"]
+  interval: 10s
+  timeout: 10s
+  retries: 18
+  start_period: 20s
+
+x-broker-health: &broker-health
+  test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+  interval: 10s
+  timeout: 10s
+  retries: 18
+  start_period: 30s
+
+x-depends-controllers: &depends-controllers
+  kafka-controller-1:
+    condition: service_healthy
+  kafka-controller-2:
+    condition: service_healthy
+  kafka-controller-3:
+    condition: service_healthy
+
+x-depends-brokers: &depends-brokers
+  kafka-broker-1:
+    condition: service_healthy
+  kafka-broker-2:
+    condition: service_healthy
+  kafka-broker-3:
+    condition: service_healthy
+
+services:
+  kafka-controller-1:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-controller-1
+    hostname: kafka-controller-1
+    environment:
+      <<: *controller-env
+      KAFKA_NODE_ID: 1
+    volumes: [kafka-controller-1-data:/var/lib/kafka/data]
+    healthcheck: *controller-health
+
+  kafka-controller-2:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-controller-2
+    hostname: kafka-controller-2
+    environment:
+      <<: *controller-env
+      KAFKA_NODE_ID: 2
+    volumes: [kafka-controller-2-data:/var/lib/kafka/data]
+    healthcheck: *controller-health
+
+  kafka-controller-3:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-controller-3
+    hostname: kafka-controller-3
+    environment:
+      <<: *controller-env
+      KAFKA_NODE_ID: 3
+    volumes: [kafka-controller-3-data:/var/lib/kafka/data]
+    healthcheck: *controller-health
+
+  # Los brokers no publican puertos: los microservicios llegan por la red interna.
+  kafka-broker-1:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-broker-1
+    hostname: kafka-broker-1
+    environment:
+      <<: *broker-env
+      KAFKA_NODE_ID: 4
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-1:9092
+    volumes: [kafka-broker-1-data:/var/lib/kafka/data]
+    healthcheck: *broker-health
+    depends_on: *depends-controllers
+
+  kafka-broker-2:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-broker-2
+    hostname: kafka-broker-2
+    environment:
+      <<: *broker-env
+      KAFKA_NODE_ID: 5
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-2:9092
+    volumes: [kafka-broker-2-data:/var/lib/kafka/data]
+    healthcheck: *broker-health
+    depends_on: *depends-controllers
+
+  kafka-broker-3:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-broker-3
+    hostname: kafka-broker-3
+    environment:
+      <<: *broker-env
+      KAFKA_NODE_ID: 6
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-3:9092
+    volumes: [kafka-broker-3-data:/var/lib/kafka/data]
+    healthcheck: *broker-health
+    depends_on: *depends-controllers
+
+  # Crea los topics una sola vez (--if-not-exists). La configuración de cada topic
+  # se declara aquí y la aplica infra/kafka/crear-topics.sh.
+  kafka-init:
+    <<: *kafka-common
+    container_name: ecopunto-kafka-init
+    restart: "no"
+    depends_on: *depends-brokers
+    entrypoint: ["/bin/bash", "/infra/crear-topics.sh"]
+    volumes: [./infra/kafka:/infra:ro]
+    environment:
+      BOOTSTRAP: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+      # Lecturas de sensores: historia de 7 días, 100 MB por partición
+      TOPIC_LECTURAS: ecopunto.sensores.lecturas
+      TOPIC_LECTURAS_PARTICIONES: 3
+      TOPIC_LECTURAS_RF: 3
+      TOPIC_LECTURAS_CONFIG: cleanup.policy=delete,retention.ms=604800000,retention.bytes=104857600,min.insync.replicas=2
+      # Estado de contenedores: compactado, se conserva el último estado por contenedor
+      TOPIC_ESTADO: ecopunto.contenedores.estado
+      TOPIC_ESTADO_PARTICIONES: 3
+      TOPIC_ESTADO_RF: 3
+      TOPIC_ESTADO_CONFIG: cleanup.policy=compact,min.insync.replicas=2,min.cleanable.dirty.ratio=0.1,segment.ms=3600000
+      # Lecturas que no se pudieron procesar: 14 días para revisarlas
+      TOPIC_DLT: ecopunto.sensores.lecturas.DLT
+      TOPIC_DLT_PARTICIONES: 3
+      TOPIC_DLT_RF: 3
+      TOPIC_DLT_CONFIG: cleanup.policy=delete,retention.ms=1209600000,retention.bytes=52428800,min.insync.replicas=2
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.5.0
+    container_name: ecopunto-kafka-ui
+    ports: ["8089:8080"]
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ecopunto
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+      AUTH_TYPE: LOGIN_FORM
+      SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USER:-admin}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD:-admin}
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+    depends_on: *depends-brokers
+    networks: [ecopunto-net]
+    restart: unless-stopped
+
+volumes:
+  kafka-controller-1-data:
+  kafka-controller-2-data:
+  kafka-controller-3-data:
+  kafka-broker-1-data:
+  kafka-broker-2-data:
+  kafka-broker-3-data:
+
+networks:
+  ecopunto-net:
+    name: ecopunto-net
