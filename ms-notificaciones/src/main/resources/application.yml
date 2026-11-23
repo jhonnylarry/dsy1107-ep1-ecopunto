@@ -23,6 +23,24 @@ spring:
         acknowledge-mode: manual
         prefetch: 10
         default-requeue-rejected: false
+  # Consumidor de los cambios de estado de contenedores (Kafka).
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ecopunto-notificaciones-sensores
+      # Un grupo nuevo parte desde el final: avisar de un estado antiguo no le sirve al encargado.
+      # (ms-monitoreo y ms-estadisticas parten desde el principio porque necesitan la historia.)
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: cl.duoc.jolarraguibel.ecopunto.notificaciones.mensajeria.sensores.EstadoContenedorEvent
+        spring.json.use.type.headers: false
+        spring.json.trusted.packages: cl.duoc.jolarraguibel.ecopunto.notificaciones.mensajeria.sensores
+    listener:
+      concurrency: 3
+      ack-mode: record
 
 # Topología de mensajería de este consumidor, centralizada.
 ecopunto:
@@ -39,5 +57,11 @@ ecopunto:
     reintentos:
       max-intentos: 3
       espera-inicial: 1s
+  sensores:
+    topic-estado: ecopunto.contenedores.estado
+    reintentos:
+      max-intentos: 3
+      espera-inicial: 1s
+      multiplicador: 2.0
   notificaciones:
     correo-encargados: ${CORREO_ENCARGADOS:encargados@ecopunto.cl}

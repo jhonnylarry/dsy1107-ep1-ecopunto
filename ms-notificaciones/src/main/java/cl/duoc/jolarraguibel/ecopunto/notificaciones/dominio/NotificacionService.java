@@ -43,6 +43,17 @@ public class NotificacionService {
                 "El problema que reportaste en " + puntoNombre + " fue resuelto. ¡Gracias por ayudar a reciclar mejor!");
     }
 
+    /** Aviso al equipo de encargados: un contenedor llegó a nivel crítico y hay que programar el retiro. */
+    @Transactional
+    public void avisarContenedorCritico(String eventId, String contenedorId, long puntoLimpioId, String material,
+            double nivelActual, double nivelPromedio) {
+        enviar(eventId, correoEncargados,
+                "Contenedor " + contenedorId + " en nivel crítico (" + Math.round(nivelActual) + "%)",
+                "El contenedor de " + material + " del punto limpio #" + puntoLimpioId + " está al "
+                        + Math.round(nivelActual) + "% (promedio reciente " + Math.round(nivelPromedio)
+                        + "%). Programar el retiro antes de que se desborde.");
+    }
+
     private void enviar(String eventId, String destinatario, String asunto, String cuerpo) {
         if (repository.existsByEventId(eventId)) {
             log.warn("[DUPLICADO] evento {} ya fue notificado; no se reenvía", eventId);
