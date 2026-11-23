@@ -1,0 +1,37 @@
+server:
+  port: ${PORT:8085}
+
+spring:
+  application:
+    name: ms-sensores
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      # acks=all + idempotencia: la escritura se confirma cuando min.insync.replicas (2) réplicas
+      # la tienen, y un reintento del productor no duplica la lectura en el log.
+      acks: all
+      properties:
+        enable.idempotence: true
+        # El consumidor deserializa con su propio DTO; no depende del nombre de clase del productor.
+        spring.json.add.type.headers: false
+        delivery.timeout.ms: 45000
+
+app:
+  security:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+# Topología Kafka y simulador, centralizados.
+ecopunto:
+  kafka:
+    topic-lecturas: ecopunto.sensores.lecturas
+  simulador:
+    activo: ${SIMULADOR_ACTIVO:true}
+    intervalo: ${SIMULADOR_INTERVALO:5s}
+    # Fuente de los puntos limpios: cada material aceptado es un contenedor con sensor.
+    puntos-url: ${PUNTOS_URL:http://localhost:8080/public/puntos-limpios}
+    aumento-maximo: 4.0

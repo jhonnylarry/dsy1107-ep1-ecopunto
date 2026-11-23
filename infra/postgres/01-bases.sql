@@ -3,3 +3,4 @@
 CREATE DATABASE ecopunto_tickets;
 CREATE DATABASE ecopunto_estadisticas;
 CREATE DATABASE ecopunto_notificaciones;
+CREATE DATABASE ecopunto_monitoreo;

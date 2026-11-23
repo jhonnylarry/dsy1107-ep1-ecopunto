@@ -1,0 +1,67 @@
+server:
+  port: ${PORT:8086}
+
+spring:
+  application:
+    name: ms-monitoreo
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:monitoreo}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+    hikari:
+      # Si la base no responde, fallar rápido para que el error handler reintente.
+      connection-timeout: 5000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ecopunto-monitoreo
+      # Un grupo nuevo empieza desde el principio del topic; después continúa desde su offset confirmado.
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer: un JSON malformado no rompe el listener; llega como error y va al DLT.
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: cl.duoc.jolarraguibel.ecopunto.monitoreo.mensajeria.LecturaSensorEvent
+        spring.json.use.type.headers: false
+        spring.json.trusted.packages: cl.duoc.jolarraguibel.ecopunto.monitoreo.mensajeria
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+        delivery.timeout.ms: 45000
+    listener:
+      # Un hilo por partición del topic de lecturas (3).
+      concurrency: 3
+      # El offset se confirma registro a registro, después de procesarlo.
+      ack-mode: record
+
+app:
+  security:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+# Topología Kafka y reglas del monitoreo, centralizadas.
+ecopunto:
+  kafka:
+    topic-lecturas: ecopunto.sensores.lecturas
+    topic-estado: ecopunto.contenedores.estado
+    topic-dlt: ecopunto.sensores.lecturas.DLT
+    reintentos:
+      max-intentos: 3
+      espera-inicial: 1s
+      multiplicador: 2.0
+  monitoreo:
+    umbral-alerta: 75.0
+    umbral-critico: 90.0
+    # Peso de la lectura nueva en el promedio móvil exponencial.
+    peso-promedio: 0.3

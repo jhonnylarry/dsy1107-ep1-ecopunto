@@ -57,6 +57,15 @@ x-broker-health: &broker-health
   retries: 18
   start_period: 30s
 
+# Variables comunes de los microservicios que usan Kafka.
+x-kafka-service-env: &kafka-service-env
+  KAFKA_BOOTSTRAP_SERVERS: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+  JWT_ISSUER: ${JWT_ISSUER:-https://login.microsoftonline.com/common/v2.0}
+  JWT_JWKS_URI: ${JWT_JWKS_URI:-https://login.microsoftonline.com/common/discovery/v2.0/keys}
+  JWT_AUDIENCE: ${JWT_AUDIENCE:-api://ecopunto-placeholder}
+  ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:4200}
+  JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
+
 x-depends-controllers: &depends-controllers
   kafka-controller-1:
     condition: service_healthy
@@ -180,6 +189,39 @@ services:
       SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD:-admin}
       JAVA_OPTS: "-Xms128m -Xmx256m"
     depends_on: *depends-brokers
+    networks: [ecopunto-net]
+    restart: unless-stopped
+
+  # Productor: simula un sensor de llenado por contenedor (cada material de cada punto limpio).
+  ms-sensores:
+    build: ./ms-sensores
+    container_name: ecopunto-ms-sensores
+    ports: ["8085:8085"]
+    environment:
+      <<: *kafka-service-env
+      PUNTOS_URL: http://backend:8080/public/puntos-limpios
+      SIMULADOR_INTERVALO: ${SIMULADOR_INTERVALO:-5s}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    networks: [ecopunto-net]
+    restart: unless-stopped
+
+  # Consumidor de lecturas (grupo ecopunto-monitoreo) y productor de cambios de estado.
+  ms-monitoreo:
+    build: ./ms-monitoreo
+    container_name: ecopunto-ms-monitoreo
+    ports: ["8086:8086"]
+    environment:
+      <<: *kafka-service-env
+      DB_URL: jdbc:postgresql://postgres:5432/ecopunto_monitoreo
+      DB_USER: ${POSTGRES_USER:-ecopunto}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ecopunto}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     networks: [ecopunto-net]
     restart: unless-stopped
 
