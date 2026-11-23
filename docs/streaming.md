@@ -175,14 +175,32 @@ API REST sobre `AdminClient`, protegida con el rol `ADMIN` igual que `ms-rabbit-
 | `POST` | `/api/kafka-admin/topics/{nombre}/particiones` | Aumentar particiones |
 | `DELETE` | `/api/kafka-admin/topics/{nombre}` | Eliminar un topic; los topics del sistema quedan protegidos |
 | `GET` | `/api/kafka-admin/grupos` | Listar consumer groups |
+| `GET` | `/api/kafka-admin/cluster` | Brokers en línea e id del clúster |
 | `GET` | `/api/kafka-admin/grupos/{id}` | Offsets y lag por partición |
 
-Las validaciones siguen el estilo de `ms-rabbit-admin`: nombre válido, particiones ≥ 1 y RF ≤ número de brokers. Además, el script `deploy/kafka-admin.sh` hace lo mismo por CLI, para mostrar una operación reproducible sin el frontend.
+Las validaciones siguen el estilo de `ms-rabbit-admin`: nombre válido, particiones ≥ 1 y RF ≤ número de brokers.
+
+### Script `deploy/kafka-admin.sh`
+
+La misma administración por línea de comandos, con las herramientas de Kafka que traen los contenedores de los brokers (no requiere instalar nada). Sirve para operar sin el frontend y para los pasos de la demo que la API no cubre:
+
+| Comando | Para qué |
+|---|---|
+| `estado` | Quórum KRaft: controller líder, votantes (1–3) y observadores (brokers 4–6) |
+| `topics` | Líder, réplicas e ISR de cada partición `ecopunto.*` |
+| `config <topic> [clave=valor,...]`, `config-default <topic> <clave>` | Ver, modificar o restaurar la configuración |
+| `crear`, `particiones`, `eliminar` | Ciclo de vida de un topic (los del sistema no se eliminan) |
+| `leer <topic> [n]` | Mensajes con partición, offset, key y headers (útil para el DLT) |
+| `invalida [json\|rango\|key]` | Publica una lectura defectuosa para mostrar validación, descarte y DLT |
+| `grupos`, `lag [grupo]` | Consumer groups, offsets y lag |
+| `reset <grupo> <topic> <inicio\|fin\|-N\|fecha:...> [--ejecutar]` | Reprocesar o saltar mensajes; sin `--ejecutar` solo muestra el plan |
+| `caida <n>`, `levantar <n>` | Demo de alta disponibilidad: nuevo líder, ISR de 2, vuelta al ISR completo y a los líderes preferidos |
 
 ## 10. Frontend
 
-- **Monitoreo** (rol `ENCARGADO`): tabla de contenedores con nivel, estado coloreado y última actualización, que se refresca sola. En la demo se ve el cambio a `CRITICO` al llegar nuevas lecturas.
-- **Administrar Kafka** (rol `ADMIN`): topics, configuración y grupos con su lag, usando `ms-kafka-admin`.
+- **Monitoreo** (`/monitoreo`, roles `ENCARGADO` y `ADMIN`): contenedores agrupados por punto limpio, con nivel, promedio y estado coloreado; se refresca cada 5 s y se puede pausar. Permite publicar una lectura manual o vaciar un contenedor (vía ms-sensores) y muestra la partición y el offset donde quedó. En la demo se ve el cambio a `CRITICO` y el aviso de ms-notificaciones.
+- **Administrar Kafka** (`/admin-kafka`, rol `ADMIN`): brokers, topics (crear, ver particiones con líder/réplicas/ISR, editar configuración, aumentar particiones, eliminar) y consumer groups con offsets y lag por partición, refrescado cada 5 s. Todo a través de `ms-kafka-admin`.
+- **Estadísticas**: suma la sección de sensores (lecturas por punto y material, nivel máximo del día) que entrega ms-estadisticas.
 
 ## 11. Despliegue y memoria
 
