@@ -236,6 +236,22 @@ services:
     networks: [ecopunto-net]
     restart: unless-stopped
 
+  # Servicios de docker-compose.yml que además consumen de Kafka: aquí solo se agrega lo de Kafka,
+  # así docker-compose.yml sigue funcionando solo (sin Kafka) como en EP3/EP4.
+  ms-estadisticas:
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  ms-notificaciones:
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
 volumes:
   kafka-controller-1-data:
   kafka-controller-2-data:

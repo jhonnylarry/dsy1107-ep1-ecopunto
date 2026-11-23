@@ -39,7 +39,7 @@ flowchart LR
     T1 -->|"grupo ecopunto-monitoreo<br/>(3 hilos, 1 por partición)"| MON["ms-monitoreo<br/>consumidor y PRODUCTOR"]
     T1 -->|"grupo ecopunto-estadisticas-sensores"| EST["ms-estadisticas"]
     MON -->|"cambio de estado · key contenedorId"| T2[("ecopunto.contenedores.estado<br/>3 particiones · RF 3 · compact")]
-    T2 -->|"grupo ecopunto-notificaciones"| NOT["ms-notificaciones<br/>aviso si CRITICO"]
+    T2 -->|"grupo ecopunto-notificaciones-sensores"| NOT["ms-notificaciones<br/>aviso si CRITICO"]
     T1 -. "falla tras reintentos" .-> DLT[("ecopunto.sensores.lecturas.DLT")]
 
     ADM["ms-kafka-admin<br/>AdminClient"] -->|"topics, configs, grupos, lag"| KB
@@ -133,17 +133,21 @@ Estados: `NORMAL` (< 75 %), `ALERTA` (75–90 %) y `CRITICO` (≥ 90 %). ms-moni
 
 ## 7. Consumidores y consumer groups
 
-| Servicio | Consumer group | Topic | Responsabilidad |
-|---|---|---|---|
-| ms-monitoreo | `ecopunto-monitoreo` | lecturas | Calcular el estado de cada contenedor (promedio de las últimas lecturas) y guardarlo; expone `GET /api/monitoreo/contenedores` |
-| ms-estadisticas | `ecopunto-estadisticas-sensores` | lecturas | Lecturas por punto limpio y nivel máximo del día; se suma a `GET /api/estadisticas` |
-| ms-notificaciones | `ecopunto-notificaciones-sensores` | estado | Aviso cuando un contenedor pasa a `CRITICO` |
+| Servicio | Consumer group | Topic | Parte desde | Responsabilidad |
+|---|---|---|---|---|
+| ms-monitoreo | `ecopunto-monitoreo` | lecturas | `earliest` | Calcular el estado de cada contenedor (promedio de las últimas lecturas) y guardarlo; expone `GET /api/monitoreo/contenedores`. Dueño del DLT |
+| ms-estadisticas | `ecopunto-estadisticas-sensores` | lecturas | `earliest` | Lecturas por punto limpio y por material, y nivel máximo del día; se suma a `GET /api/estadisticas` en el campo `sensores` |
+| ms-notificaciones | `ecopunto-notificaciones-sensores` | estado | `latest` | Aviso a los encargados cuando un contenedor **entra** a `CRITICO` |
+
+`auto-offset-reset` solo aplica a un grupo sin offsets guardados. Monitoreo y estadísticas necesitan la historia; un aviso de un estado antiguo no le sirve al encargado, por eso notificaciones parte desde el final.
 
 **Dos usos de los consumer groups:**
 - **Repartir carga dentro de un grupo:** `ecopunto-monitoreo` usa `concurrency: 3`, un hilo por partición. Si se levanta una segunda instancia, Kafka rebalancea las particiones entre ambas.
 - **Responsabilidades independientes:** monitoreo y estadísticas leen el mismo topic con grupos distintos. Cada uno tiene sus offsets y su lag.
 
-Cada `@KafkaListener` solo valida el DTO y delega en un servicio de dominio. La configuración del cliente (bootstrap servers, serializers, `acks`, grupos) vive en `application.yml` y en una clase `KafkaConfig`.
+**Orden y concurrencia:** la key de todos los mensajes es el `contenedorId`, así las lecturas de un contenedor llegan siempre a la misma partición y en orden. ms-estadisticas aprovecha esto: sus contadores son por contenedor (punto + material), así que cada contador lo actualiza un solo hilo y no se pierden incrementos con `concurrency: 3`. Los totales por punto se suman al consultar.
+
+Cada `@KafkaListener` solo valida el DTO, lo traduce al modelo del dominio y delega en un servicio de dominio. La configuración del cliente (bootstrap servers, serializers, `acks`, grupos) vive en `application.yml` y en una clase `KafkaConfig`.
 
 ## 8. Manejo de errores
 
@@ -152,9 +156,11 @@ Cada `@KafkaListener` solo valida el DTO y delega en un servicio de dominio. La 
 | JSON malformado | El payload no es un `LecturaSensorEvent` | `ErrorHandlingDeserializer`: no rompe el listener y la lectura va directo al DLT |
 | Payload inválido | `nivelLlenado` = 140 o sin `contenedorId` | Validación del DTO, se marca como **no reintentable** y va al DLT con el motivo |
 | Error transitorio | Base de datos caída | `DefaultErrorHandler` con espera creciente (3 intentos) y luego DLT |
-| Duplicado | Misma `lecturaId` dos veces | Se ignora por idempotencia |
+| Duplicado o atrasado | Misma lectura dos veces, o una medición más antigua que la última procesada | Se ignora por idempotencia (monitoreo y estadísticas comparan `medidoEn`; notificaciones usa contenedor + instante del cambio como id del aviso) |
 
-Cada fallo se registra en el log con `topic`, `partition`, `offset`, `key` y motivo. El DLT conserva los headers de origen, así se sabe de dónde vino cada lectura.
+Cada fallo se registra en el log con `topic`, `partition`, `offset`, `key` y motivo (`[RETRY]`, `[DLT]`, `[DESCARTADA]`). El DLT conserva los headers de origen, así se sabe de dónde vino cada lectura.
+
+**Un solo dueño del DLT:** ms-estadisticas lee el mismo topic que ms-monitoreo, así que ve los mismos mensajes defectuosos. Si ambos publicaran al DLT, cada mensaje quedaría dos veces. Por eso ms-estadisticas y ms-notificaciones aplican la misma validación y los mismos reintentos, pero al final solo descartan con log; el DLT lo alimenta ms-monitoreo.
 
 ## 9. Microservicio administrador `ms-kafka-admin`
 
