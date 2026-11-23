@@ -35,6 +35,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
@@ -172,14 +173,14 @@ public class KafkaAdminService {
         }
         return esperar(admin.describeConsumerGroups(ids).all()).values().stream()
                 .sorted(Comparator.comparing(ConsumerGroupDescription::groupId))
-                .map(g -> new GrupoResumen(g.groupId(), g.groupState().toString(), g.members().size()))
+                .map(g -> new GrupoResumen(g.groupId(), g.groupState().name(), g.members().size()))
                 .toList();
     }
 
     /** Offsets confirmados, offset final y lag por partición: lag = offset final − offset confirmado. */
     public GrupoDetalle obtenerGrupo(String grupo) {
         ConsumerGroupDescription descripcion = esperar(admin.describeConsumerGroups(List.of(grupo)).all()).get(grupo);
-        if (descripcion.groupState().toString().equals("DEAD")) {
+        if (descripcion.groupState() == GroupState.DEAD) {
             throw new RecursoNoEncontradoException("No existe el consumer group " + grupo);
         }
         Map<TopicPartition, OffsetAndMetadata> confirmados =
@@ -211,7 +212,7 @@ public class KafkaAdminService {
                 .toList();
         long lagTotal = offsets.stream().map(OffsetParticion::lag).filter(java.util.Objects::nonNull)
                 .mapToLong(Long::longValue).sum();
-        return new GrupoDetalle(grupo, descripcion.groupState().toString(), descripcion.members().size(), lagTotal,
+        return new GrupoDetalle(grupo, descripcion.groupState().name(), descripcion.members().size(), lagTotal,
                 offsets);
     }
 
