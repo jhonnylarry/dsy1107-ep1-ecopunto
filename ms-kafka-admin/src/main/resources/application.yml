@@ -1,0 +1,39 @@
+server:
+  port: ${PORT:8087}
+
+spring:
+  application:
+    name: ms-kafka-admin
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      # Si el clúster no responde, la API devuelve 503 en vez de quedarse esperando.
+      properties:
+        request.timeout.ms: 10000
+        default.api.timeout.ms: 15000
+
+app:
+  security:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    jwks-uri: ${JWT_JWKS_URI:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+    audience: ${JWT_AUDIENCE:api://ecopunto-placeholder}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+
+ecopunto:
+  kafka-admin:
+    # Topics del sistema: no se pueden eliminar desde la API (sí modificar su configuración).
+    topics-protegidos:
+      - ecopunto.sensores.lecturas
+      - ecopunto.contenedores.estado
+      - ecopunto.sensores.lecturas.DLT
+    # Configuraciones que la API permite fijar o modificar.
+    configuraciones-permitidas:
+      - cleanup.policy
+      - retention.ms
+      - retention.bytes
+      - min.insync.replicas
+      - segment.ms
+      - delete.retention.ms
+      - min.cleanable.dirty.ratio
+      - max.message.bytes
+    max-particiones: 12

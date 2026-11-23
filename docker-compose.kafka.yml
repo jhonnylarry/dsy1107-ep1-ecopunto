@@ -225,6 +225,17 @@ services:
     networks: [ecopunto-net]
     restart: unless-stopped
 
+  # API REST de administración de Kafka (rol ADMIN): topics, configuraciones, particiones y consumer groups.
+  ms-kafka-admin:
+    build: ./ms-kafka-admin
+    container_name: ecopunto-ms-kafka-admin
+    ports: ["8087:8087"]
+    environment:
+      <<: *kafka-service-env
+    depends_on: *depends-brokers
+    networks: [ecopunto-net]
+    restart: unless-stopped
+
 volumes:
   kafka-controller-1-data:
   kafka-controller-2-data:
