@@ -14,7 +14,8 @@ class EstadisticasServiceTest {
 
     private final ContadorRepository contadores = mock(ContadorRepository.class);
     private final EventoProcesadoRepository procesados = mock(EventoProcesadoRepository.class);
-    private final EstadisticasService service = new EstadisticasService(contadores, procesados);
+    private final EstadisticasService service = new EstadisticasService(contadores, procesados,
+            mock(SensoresEstadisticas.class));
 
     @Test
     void reporteCreadoIncrementaEstadoComunaYPunto() {

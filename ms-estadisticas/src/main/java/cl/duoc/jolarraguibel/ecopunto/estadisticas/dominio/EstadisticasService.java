@@ -18,10 +18,13 @@ public class EstadisticasService {
 
     private final ContadorRepository contadores;
     private final EventoProcesadoRepository procesados;
+    private final SensoresEstadisticas sensores;
 
-    public EstadisticasService(ContadorRepository contadores, EventoProcesadoRepository procesados) {
+    public EstadisticasService(ContadorRepository contadores, EventoProcesadoRepository procesados,
+            SensoresEstadisticas sensores) {
         this.contadores = contadores;
         this.procesados = procesados;
+        this.sensores = sensores;
     }
 
     /**
@@ -49,7 +52,8 @@ public class EstadisticasService {
                 porEstado.getOrDefault("en_revision", 0L),
                 porEstado.getOrDefault("resuelto", 0L),
                 agrupar("comuna:"),
-                agrupar("punto:"));
+                agrupar("punto:"),
+                sensores.resumen());
     }
 
     private void incrementar(String clave) {
@@ -70,6 +74,7 @@ public class EstadisticasService {
             long pasadosARevision,
             long resueltos,
             Map<String, Long> reportesPorComuna,
-            Map<String, Long> reportesPorPunto) {
+            Map<String, Long> reportesPorPunto,
+            SensoresEstadisticas.Resumen sensores) {
     }
 }

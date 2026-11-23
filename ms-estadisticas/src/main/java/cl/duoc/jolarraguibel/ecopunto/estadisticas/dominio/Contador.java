@@ -25,6 +25,15 @@ public class Contador {
         valor++;
     }
 
+    /** Guarda el valor solo si es mayor al actual (máximos y marcas de tiempo). */
+    public boolean subirA(long nuevo) {
+        if (nuevo <= valor) {
+            return false;
+        }
+        valor = nuevo;
+        return true;
+    }
+
     public String getClave() { return clave; }
     public long getValor() { return valor; }
 }

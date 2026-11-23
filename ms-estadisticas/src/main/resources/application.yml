@@ -24,6 +24,23 @@ spring:
         acknowledge-mode: manual
         prefetch: 10
         default-requeue-rejected: false
+  # Segundo consumidor de las lecturas de sensores: grupo propio, lee el mismo topic que ms-monitoreo
+  # sin quitarle mensajes (cada grupo tiene sus propios offsets).
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ecopunto-estadisticas-sensores
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: cl.duoc.jolarraguibel.ecopunto.estadisticas.mensajeria.sensores.LecturaSensorEvent
+        spring.json.use.type.headers: false
+        spring.json.trusted.packages: cl.duoc.jolarraguibel.ecopunto.estadisticas.mensajeria.sensores
+    listener:
+      concurrency: 3
+      ack-mode: record
 
 app:
   security:
@@ -45,3 +62,12 @@ ecopunto:
     reintentos:
       max-intentos: 3
       espera-inicial: 1s
+  # Lecturas de sensores (Kafka). Las lecturas inválidas las envía al DLT ms-monitoreo;
+  # este servicio solo reintenta los errores transitorios y descarta el resto con log.
+  sensores:
+    topic-lecturas: ecopunto.sensores.lecturas
+    zona-horaria: America/Santiago
+    reintentos:
+      max-intentos: 3
+      espera-inicial: 1s
+      multiplicador: 2.0
