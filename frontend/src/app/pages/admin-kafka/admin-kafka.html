@@ -1,0 +1,212 @@
+<main class="container ancho">
+  <a routerLink="/" class="back-link">← Volver</a>
+  <div class="page-header">
+    <div>
+      <h1>Administración de Kafka</h1>
+      <p class="subtitulo">Topics, configuración, particiones y consumer groups del clúster, vía ms-kafka-admin.</p>
+    </div>
+    <button type="button" class="secondary" (click)="cargar()">Actualizar</button>
+  </div>
+
+  @if (aviso()) {
+    <p class="alerta-info">{{ aviso() }}</p>
+  }
+  @if (error()) {
+    <div class="alerta-error">
+      <p>{{ error() }}</p>
+      @for (campo of erroresCampo() | keyvalue; track campo.key) {
+        <p class="campo"><strong>{{ campo.key }}:</strong> {{ campo.value }}</p>
+      }
+    </div>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Cargando clúster…</p>
+  } @else {
+    <!-- ================= Clúster ================= -->
+    @if (cluster(); as c) {
+      <section class="panel">
+        <h2>Clúster <code class="id">{{ c.clusterId }}</code></h2>
+        <div class="brokers">
+          @for (b of c.brokers; track b.id) {
+            <div class="broker">
+              <span class="broker-id">Broker {{ b.id }}</span>
+              <code>{{ b.host }}:{{ b.puerto }}</code>
+            </div>
+          }
+        </div>
+        <p class="nota">
+          {{ c.brokers.length }} brokers en línea. Los metadatos los gestiona un quórum de 3 controllers KRaft
+          (nodos 1–3), que no se exponen a los clientes.
+        </p>
+      </section>
+    }
+
+    <!-- ================= Topics ================= -->
+    <section class="panel">
+      <h2>Topics <span class="contador">{{ topicsPropios().length }}</span></h2>
+      <form class="crear" (ngSubmit)="crearTopic()">
+        <input name="tNombre" class="largo" [(ngModel)]="nuevoTopic.nombre" placeholder="nombre, ej. ecopunto.pruebas" />
+        <label>Particiones <input name="tPart" type="number" min="1" max="12" [(ngModel)]="nuevoTopic.particiones" /></label>
+        <label>Réplicas
+          <select name="tRf" [(ngModel)]="nuevoTopic.rf">
+            <option [ngValue]="1">1</option><option [ngValue]="2">2</option><option [ngValue]="3">3</option>
+          </select>
+        </label>
+        <label>Limpieza
+          <select name="tCleanup" [(ngModel)]="nuevoTopic.cleanupPolicy">
+            <option value="delete">delete</option><option value="compact">compact</option>
+          </select>
+        </label>
+        <label>Retención (h) <input name="tRet" type="number" min="1" [(ngModel)]="nuevoTopic.retencionHoras" /></label>
+        <label>min ISR <input name="tIsr" type="number" min="1" max="3" [(ngModel)]="nuevoTopic.minIsr" /></label>
+        <button type="submit">Crear topic</button>
+      </form>
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead><tr><th>Nombre</th><th>Particiones</th><th>Réplicas</th><th></th></tr></thead>
+          <tbody>
+            @for (t of topicsPropios(); track t.nombre) {
+              <tr [class.activa]="seleccionado()?.nombre === t.nombre">
+                <td><code>{{ t.nombre }}</code> @if (t.protegido) { <span class="badge en_revision">sistema</span> }</td>
+                <td>{{ t.particiones }}</td>
+                <td>{{ t.replicationFactor }}</td>
+                <td class="acciones">
+                  <button type="button" class="secondary mini" (click)="verTopic(t.nombre)">Detalle</button>
+                  <button type="button" class="danger mini" [disabled]="t.protegido"
+                    [title]="t.protegido ? 'Topic del sistema: no se puede eliminar' : ''" (click)="eliminarTopic(t)">Eliminar</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="nota">Los topics del sistema (<code>ecopunto.*</code>) no se pueden eliminar, pero sí ajustar su configuración.</p>
+    </section>
+
+    <!-- ================= Detalle del topic ================= -->
+    @if (seleccionado(); as t) {
+      <section class="panel detalle">
+        <div class="detalle-header">
+          <h2><code>{{ t.nombre }}</code></h2>
+          <button type="button" class="secondary mini" (click)="seleccionado.set(null)">Cerrar</button>
+        </div>
+
+        <div class="columnas">
+          <div>
+            <h3>Particiones</h3>
+            <div class="tabla-scroll">
+              <table class="tabla">
+                <thead><tr><th>#</th><th>Líder</th><th>Réplicas</th><th>ISR</th></tr></thead>
+                <tbody>
+                  @for (p of t.detalleParticiones; track p.particion) {
+                    <tr>
+                      <td>{{ p.particion }}</td>
+                      <td>@if (p.lider !== null) { broker {{ p.lider }} } @else { <span class="badge alta">sin líder</span> }</td>
+                      <td>{{ p.replicas.join(', ') }}</td>
+                      <td>
+                        {{ p.isr.join(', ') }}
+                        @if (subReplicada(p)) { <span class="badge alta">sub-replicada</span> }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <form class="crear" (ngSubmit)="aumentarParticiones()">
+              <label>Aumentar a <input name="pTotal" type="number" [min]="t.particiones + 1" max="12" [(ngModel)]="totalParticiones" /></label>
+              <button type="submit" class="secondary">Aplicar</button>
+            </form>
+          </div>
+
+          <div>
+            <h3>Configuración</h3>
+            <div class="tabla-scroll">
+              <table class="tabla">
+                <thead><tr><th>Clave</th><th>Valor</th><th></th></tr></thead>
+                <tbody>
+                  @for (cfg of t.configuracion | keyvalue; track cfg.key) {
+                    <tr>
+                      <td><code>{{ cfg.key }}</code></td>
+                      <td><code class="valor-cfg">{{ cfg.value }}</code></td>
+                      <td class="acciones">
+                        <button type="button" class="secondary mini" (click)="editarConfig(cfg.key, cfg.value)">Editar</button>
+                        <button type="button" class="secondary mini" (click)="restaurarConfig(cfg.key)">Por defecto</button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="3" class="vacio">Usa los valores por defecto del clúster.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <form class="crear" (ngSubmit)="aplicarConfig()">
+              <select name="cClave" [(ngModel)]="cambioConfig.clave">
+                @for (k of configuraciones; track k) { <option [value]="k">{{ k }}</option> }
+              </select>
+              <input name="cValor" [(ngModel)]="cambioConfig.valor" placeholder="valor, ej. 86400000" />
+              <button type="submit" [disabled]="!cambioConfig.valor.trim()">Aplicar</button>
+            </form>
+            <p class="nota"><code>retention.ms</code>: 1 día = 86400000 · 7 días = 604800000.</p>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- ================= Consumer groups ================= -->
+    <section class="panel">
+      <div class="detalle-header">
+        <h2>Consumer groups <span class="contador">{{ grupos().length }}</span> <span class="lag-total">lag total {{ lagTotal() }}</span></h2>
+        <button type="button" class="secondary mini" [class.activo]="lagEnVivo()" (click)="alternarLag()">
+          {{ lagEnVivo() ? 'Lag en vivo (5 s)' : 'Lag pausado' }}
+        </button>
+      </div>
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead><tr><th>Grupo</th><th>Estado</th><th>Miembros</th><th>Lag</th><th></th></tr></thead>
+          <tbody>
+            @for (g of grupos(); track g.grupo) {
+              <tr>
+                <td><code>{{ g.grupo }}</code></td>
+                <td><span [class]="'badge ' + claseGrupo(g.estado)">{{ g.estado }}</span></td>
+                <td>{{ g.miembros }}</td>
+                <td [class.con-lag]="g.lagTotal > 0">{{ g.lagTotal }}</td>
+                <td class="acciones">
+                  <button type="button" class="secondary mini" (click)="alternarGrupo(g.grupo)">
+                    {{ grupoAbierto() === g.grupo ? 'Ocultar' : 'Offsets' }}
+                  </button>
+                </td>
+              </tr>
+              @if (grupoAbierto() === g.grupo) {
+                <tr class="sub">
+                  <td colspan="5">
+                    <table class="tabla interna">
+                      <thead><tr><th>Topic</th><th>Partición</th><th>Confirmado</th><th>Final</th><th>Lag</th><th>Consumidor</th></tr></thead>
+                      <tbody>
+                        @for (o of g.offsets; track o.topic + o.particion) {
+                          <tr>
+                            <td><code>{{ o.topic }}</code></td>
+                            <td>{{ o.particion }}</td>
+                            <td>{{ o.offsetConfirmado ?? '—' }}</td>
+                            <td>{{ o.offsetFinal }}</td>
+                            <td [class.con-lag]="(o.lag ?? 0) > 0">{{ o.lag ?? '—' }}</td>
+                            <td><code class="id">{{ o.consumidor ?? 'sin asignar' }}</code></td>
+                          </tr>
+                        } @empty {
+                          <tr><td colspan="6" class="vacio">El grupo no tiene offsets confirmados.</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr><td colspan="5" class="vacio">No hay consumer groups.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="nota">Lag = offset final de la partición − offset confirmado por el grupo: mensajes que el grupo aún no procesa.</p>
+    </section>
+  }
+</main>

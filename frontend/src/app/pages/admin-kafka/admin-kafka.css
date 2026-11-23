@@ -1,0 +1,34 @@
+.ancho { max-width: 1100px; }
+section.panel { margin-bottom: 1.25rem; }
+section.panel h2 { font-size: 1.1rem; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+h3 { font-size: 0.95rem; margin: 0 0 0.5rem; color: var(--color-text-muted); }
+.contador { background: var(--color-primary-light); color: var(--color-primary-dark); border-radius: 999px; font-size: 0.75rem; padding: 0.1rem 0.55rem; }
+.lag-total { font-size: 0.8rem; font-weight: 500; color: var(--color-text-muted); }
+.crear { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+.crear label { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--color-text-muted); }
+.crear input, .crear select { font-family: inherit; font-size: 0.9rem; padding: 0.45rem 0.6rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: var(--color-text); }
+.crear input[type='number'] { width: 4.5rem; }
+.crear .largo, .crear input:not([type]) { flex: 1; min-width: 180px; }
+.brokers { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; }
+.broker { border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.broker-id { font-weight: 600; }
+.tabla-scroll { overflow-x: auto; }
+.tabla tr.activa td { background: var(--color-primary-light); }
+.detalle { border-color: var(--color-primary); }
+.detalle-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.detalle-header h2 { margin-bottom: 0.5rem; }
+.columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; }
+.columnas > div { min-width: 0; }
+.valor-cfg { word-break: break-all; }
+.sub > td { background: var(--color-bg); padding: 0.5rem; }
+.interna { font-size: 0.82rem; }
+.con-lag { color: var(--color-danger); font-weight: 700; }
+.activo { background: var(--color-primary-light); border-color: var(--color-primary); }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 0.82rem; }
+.id { color: var(--color-text-muted); font-size: 0.75rem; }
+.acciones { text-align: right; white-space: nowrap; }
+.acciones button + button { margin-left: 0.35rem; }
+.mini { font-size: 0.75rem; padding: 0.25rem 0.6rem; }
+.nota { color: var(--color-text-muted); font-size: 0.8rem; margin: 0.5rem 0 0; }
+.alerta-error p { margin: 0.15rem 0; }
+.alerta-error .campo { font-size: 0.85rem; }

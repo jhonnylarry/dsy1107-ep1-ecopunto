@@ -15,8 +15,12 @@
         @if (esEncargado()) {
           <a routerLink="/tickets"><button type="button" class="secondary">Tickets de mantención</button></a>
         }
+        @if (esEncargado() || esAdmin()) {
+          <a routerLink="/monitoreo"><button type="button" class="secondary">Monitoreo de contenedores</button></a>
+        }
         @if (esAdmin()) {
           <a routerLink="/admin-rabbitmq"><button type="button" class="secondary">Administrar RabbitMQ</button></a>
+          <a routerLink="/admin-kafka"><button type="button" class="secondary">Administrar Kafka</button></a>
         }
         <button type="button" class="secondary" (click)="auth.logout()">Cerrar sesión</button>
       </div>

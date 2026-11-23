@@ -1,0 +1,100 @@
+<main class="container ancho">
+  <a routerLink="/" class="back-link">← Volver</a>
+  <div class="page-header">
+    <div>
+      <h1>Monitoreo de contenedores</h1>
+      <p class="subtitulo">
+        Nivel de llenado calculado por ms-monitoreo a partir de las lecturas de sensores en Kafka.
+        @if (actualizadoEn(); as t) { Actualizado {{ t.toLocaleTimeString() }}. }
+      </p>
+    </div>
+    <div class="controles">
+      <button type="button" class="secondary" [class.activo]="enVivo()" (click)="alternarEnVivo()">
+        <span class="punto-vivo" [class.on]="enVivo()"></span>{{ enVivo() ? 'En vivo (5 s)' : 'Pausado' }}
+      </button>
+      <button type="button" class="secondary" (click)="cargar()">Actualizar</button>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="alerta-error">{{ error() }}</p>
+  }
+
+  @if (resumen(); as r) {
+    <section class="kpis">
+      <div class="panel kpi"><span class="valor">{{ r.contenedores }}</span><span class="etiqueta">Contenedores</span></div>
+      <div class="panel kpi normal"><span class="valor">{{ cantidad('NORMAL') }}</span><span class="etiqueta">Normal (&lt; 75 %)</span></div>
+      <div class="panel kpi alerta"><span class="valor">{{ cantidad('ALERTA') }}</span><span class="etiqueta">Alerta (75–90 %)</span></div>
+      <div class="panel kpi critico"><span class="valor">{{ cantidad('CRITICO') }}</span><span class="etiqueta">Crítico (≥ 90 %)</span></div>
+      <div class="panel kpi"><span class="valor">{{ r.nivelPromedioGeneral | number: '1.0-0' }} %</span><span class="etiqueta">Nivel promedio</span></div>
+      <div class="panel kpi"><span class="valor">{{ r.lecturasProcesadas }}</span><span class="etiqueta">Lecturas procesadas</span></div>
+    </section>
+  }
+
+  <section class="panel">
+    <h2>Simular una lectura</h2>
+    <p class="nota">Publica en <code>ecopunto.sensores.lecturas</code> a través de ms-sensores. Sobre 90 % el contenedor pasa a crítico y ms-notificaciones avisa a los encargados.</p>
+    <form class="crear" (ngSubmit)="enviarLectura()">
+      <select name="contenedor" [(ngModel)]="lectura.contenedorId" required>
+        @for (c of ordenados(); track c.contenedorId) { <option [value]="c.contenedorId">{{ c.contenedorId }}</option> }
+      </select>
+      <input name="nivel" type="number" min="0" max="100" step="1" [(ngModel)]="lectura.nivel" required />
+      <span class="unidad">%</span>
+      <button type="submit" [disabled]="!lectura.contenedorId">Publicar lectura</button>
+    </form>
+    @if (publicada(); as p) {
+      <p class="alerta-info">
+        Lectura de <code>{{ p.contenedorId }}</code> ({{ p.nivelLlenado }} %) publicada en
+        <code>{{ p.topic }}</code>, partición <strong>{{ p.particion }}</strong>, offset <strong>{{ p.offset }}</strong>.
+      </p>
+    }
+  </section>
+
+  <div class="filtros">
+    @for (f of ['TODOS', 'CRITICO', 'ALERTA', 'NORMAL']; track f) {
+      <button type="button" class="secondary mini" [class.activo]="filtro() === f" (click)="filtro.set($any(f))">
+        {{ f === 'TODOS' ? 'Todos' : f.charAt(0) + f.slice(1).toLowerCase() }}
+      </button>
+    }
+  </div>
+
+  @if (cargando()) {
+    <p class="vacio">Cargando contenedores…</p>
+  } @else {
+    @for (g of grupos(); track g.puntoLimpioId) {
+      <section class="panel">
+        <h2>{{ g.nombre }} <span class="contador">#{{ g.puntoLimpioId }}</span></h2>
+        <div class="tabla-scroll">
+        <table class="tabla">
+          <thead>
+            <tr><th>Material</th><th class="col-nivel">Nivel</th><th>Promedio</th><th>Estado</th><th>Lecturas</th><th>Última medición</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (c of g.contenedores; track c.contenedorId) {
+              <tr>
+                <td><strong>{{ c.material }}</strong><br /><code class="id">{{ c.contenedorId }}</code></td>
+                <td class="col-nivel">
+                  <div class="nivel">
+                    <span class="barra"><span [class]="'relleno ' + claseEstado(c.estado)" [style.width]="ancho(c.nivelActual)"></span></span>
+                    <span class="porcentaje">{{ c.nivelActual | number: '1.0-0' }} %</span>
+                  </div>
+                </td>
+                <td>{{ c.nivelPromedio | number: '1.0-0' }} %</td>
+                <td><span [class]="'badge ' + claseEstado(c.estado)">{{ c.estado }}</span></td>
+                <td>{{ c.lecturas }}</td>
+                <td>{{ c.ultimaMedicion ? (c.ultimaMedicion | date: 'HH:mm:ss') : '—' }}</td>
+                <td class="acciones"><button type="button" class="secondary mini" (click)="vaciar(c)">Vaciar</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+      </section>
+    } @empty {
+      <p class="vacio">
+        @if (filtro() === 'TODOS') { Aún no llegan lecturas. El simulador de ms-sensores publica una por contenedor cada 5 segundos. }
+        @else { No hay contenedores en este estado. }
+      </p>
+    }
+  }
+</main>

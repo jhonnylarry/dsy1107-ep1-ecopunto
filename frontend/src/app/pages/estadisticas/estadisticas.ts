@@ -4,7 +4,10 @@ import { RouterLink } from '@angular/router';
 import { EcopuntoApi } from '../../servicios/ecopunto-api';
 import { Estadisticas as Resumen } from '../../servicios/modelos';
 
-/** Estadísticas que ms-estadisticas arma consumiendo los eventos reporte.* de RabbitMQ. */
+/**
+ * Estadísticas de ms-estadisticas: reportes (eventos reporte.* de RabbitMQ) y lecturas de sensores
+ * (topic ecopunto.sensores.lecturas de Kafka).
+ */
 @Component({
   selector: 'app-estadisticas',
   standalone: true,

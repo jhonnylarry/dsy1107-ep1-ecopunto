@@ -27,4 +27,14 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin-rabbitmq/admin-rabbitmq').then((m) => m.AdminRabbitmq),
     canActivate: [authGuard],
   },
+  {
+    path: 'monitoreo',
+    loadComponent: () => import('./pages/monitoreo/monitoreo').then((m) => m.Monitoreo),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'admin-kafka',
+    loadComponent: () => import('./pages/admin-kafka/admin-kafka').then((m) => m.AdminKafka),
+    canActivate: [authGuard],
+  },
 ];
